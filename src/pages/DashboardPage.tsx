@@ -304,9 +304,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm">
-            <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Open Accounts</p>
-            <h3 className="text-2xl font-bold text-[var(--mh-primary)] mb-2">{positions.length || 1}</h3>
-            <p className="text-sm text-[var(--mh-ink)]/60">Active service profile</p>
+            <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Active Services</p>
+            <h3 className="text-2xl font-bold text-[var(--mh-primary)] mb-2">{positions.length || 3}</h3>
+            <p className="text-sm text-[var(--mh-ink)]/60">Membership services ready to use</p>
           </div>
         </div>
 

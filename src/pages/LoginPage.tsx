@@ -41,135 +41,35 @@ export default function LoginPage() {
 
       // Handle demo credentials
       if (formData.email === 'demo@example.com' && formData.password === 'Demo123!@') {
-        // Generate transaction history from 2015 to present
         const transactions = [
-          // 2015 - Initial and early deposits
-          { date: '2015-01-15', type: 'deposit', amount: 50000, description: 'Initial Account Funding', balance: 50000 },
-          { date: '2015-03-20', type: 'deposit', amount: 15000, description: 'Monthly Contribution', balance: 65000 },
-          { date: '2015-04-10', type: 'dividend', amount: 245, description: 'Dividend - AAPL', balance: 65245 },
-          { date: '2015-06-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 85245 },
-          { date: '2015-09-30', type: 'interest', amount: 180, description: 'Interest Earned', balance: 85425 },
-          { date: '2015-12-15', type: 'deposit', amount: 25000, description: 'Year-End Deposit', balance: 110425 },
-          
-          // 2016 - Regular deposits and investment growth
-          { date: '2016-01-15', type: 'deposit', amount: 18000, description: 'Monthly Contribution', balance: 128425 },
-          { date: '2016-02-20', type: 'trade', amount: 3400, description: 'Trading Profit - MSFT', balance: 131825 },
-          { date: '2016-03-15', type: 'deposit', amount: 18000, description: 'Monthly Contribution', balance: 149825 },
-          { date: '2016-04-10', type: 'dividend', amount: 685, description: 'Dividend Distribution', balance: 150510 },
-          { date: '2016-06-15', type: 'deposit', amount: 18000, description: 'Monthly Contribution', balance: 168510 },
-          { date: '2016-09-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 188510 },
-          { date: '2016-12-15', type: 'deposit', amount: 30000, description: 'Year-End Deposit', balance: 218510 },
-          
-          // 2017 - Accelerated growth
-          { date: '2017-01-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 238510 },
-          { date: '2017-02-10', type: 'trade', amount: 5200, description: 'Trading Profit - GOOGL', balance: 243710 },
-          { date: '2017-03-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 263710 },
-          { date: '2017-04-20', type: 'dividend', amount: 1245, description: 'Dividend Distribution', balance: 264955 },
-          { date: '2017-06-15', type: 'deposit', amount: 22000, description: 'Monthly Contribution', balance: 286955 },
-          { date: '2017-09-15', type: 'deposit', amount: 22000, description: 'Monthly Contribution', balance: 308955 },
-          { date: '2017-12-15', type: 'deposit', amount: 35000, description: 'Year-End Deposit & Bonus', balance: 343955 },
-          
-          // 2018 - Market volatility period
-          { date: '2018-01-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 363955 },
-          { date: '2018-02-20', type: 'trade', amount: -2100, description: 'Trading Loss - Market Correction', balance: 361855 },
-          { date: '2018-03-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 381855 },
-          { date: '2018-04-15', type: 'dividend', amount: 980, description: 'Dividend Distribution', balance: 382835 },
-          { date: '2018-06-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 402835 },
-          { date: '2018-09-15', type: 'deposit', amount: 20000, description: 'Monthly Contribution', balance: 422835 },
-          { date: '2018-12-15', type: 'deposit', amount: 32000, description: 'Year-End Deposit', balance: 454835 },
-          
-          // 2019 - Recovery and growth
-          { date: '2019-01-15', type: 'deposit', amount: 22000, description: 'Monthly Contribution', balance: 476835 },
-          { date: '2019-02-10', type: 'trade', amount: 4350, description: 'Trading Profit - Tech Rally', balance: 481185 },
-          { date: '2019-03-15', type: 'deposit', amount: 22000, description: 'Monthly Contribution', balance: 503185 },
-          { date: '2019-04-20', type: 'dividend', amount: 1890, description: 'Dividend Distribution', balance: 505075 },
-          { date: '2019-06-15', type: 'deposit', amount: 25000, description: 'Monthly Contribution', balance: 530075 },
-          { date: '2019-09-15', type: 'deposit', amount: 25000, description: 'Monthly Contribution', balance: 555075 },
-          { date: '2019-12-15', type: 'deposit', amount: 40000, description: 'Year-End Deposit & Bonus', balance: 595075 },
-          
-          // 2020 - COVID year - mixed results
-          { date: '2020-01-15', type: 'deposit', amount: 23000, description: 'Monthly Contribution', balance: 618075 },
-          { date: '2020-02-28', type: 'trade', amount: -3200, description: 'COVID Market Correction', balance: 614875 },
-          { date: '2020-03-15', type: 'deposit', amount: 23000, description: 'Monthly Contribution', balance: 637875 },
-          { date: '2020-04-10', type: 'trade', amount: 8900, description: 'Recovery Trade Profit', balance: 646775 },
-          { date: '2020-04-20', type: 'dividend', amount: 1240, description: 'Dividend Distribution', balance: 648015 },
-          { date: '2020-06-15', type: 'deposit', amount: 25000, description: 'Monthly Contribution', balance: 673015 },
-          { date: '2020-09-15', type: 'deposit', amount: 25000, description: 'Monthly Contribution', balance: 698015 },
-          { date: '2020-12-15', type: 'deposit', amount: 45000, description: 'Year-End Deposit & Bonus', balance: 743015 },
-          
-          // 2021 - Strong bull market
-          { date: '2021-01-15', type: 'deposit', amount: 25000, description: 'Monthly Contribution', balance: 768015 },
-          { date: '2021-02-10', type: 'trade', amount: 12500, description: 'Bull Market Trading Gain', balance: 780515 },
-          { date: '2021-03-15', type: 'deposit', amount: 25000, description: 'Monthly Contribution', balance: 805515 },
-          { date: '2021-04-20', type: 'dividend', amount: 2180, description: 'Dividend Distribution', balance: 807695 },
-          { date: '2021-06-15', type: 'deposit', amount: 28000, description: 'Monthly Contribution', balance: 835695 },
-          { date: '2021-09-15', type: 'deposit', amount: 28000, description: 'Monthly Contribution', balance: 863695 },
-          { date: '2021-12-15', type: 'deposit', amount: 50000, description: 'Year-End Deposit & Bonus', balance: 913695 },
-          
-          // 2022 - Market downturn
-          { date: '2022-01-15', type: 'deposit', amount: 26000, description: 'Monthly Contribution', balance: 939695 },
-          { date: '2022-02-20', type: 'trade', amount: -5400, description: 'Inflation Concerns Trade Loss', balance: 934295 },
-          { date: '2022-03-15', type: 'deposit', amount: 26000, description: 'Monthly Contribution', balance: 960295 },
-          { date: '2022-04-15', type: 'dividend', amount: 1650, description: 'Dividend Distribution', balance: 961945 },
-          { date: '2022-06-15', type: 'deposit', amount: 26000, description: 'Monthly Contribution', balance: 987945 },
-          { date: '2022-09-15', type: 'deposit', amount: 26000, description: 'Monthly Contribution', balance: 1013945 },
-          { date: '2022-12-15', type: 'deposit', amount: 45000, description: 'Year-End Deposit', balance: 1058945 },
-          
-          // 2023 - Recovery and large deposit
-          { date: '2023-01-15', type: 'deposit', amount: 30000, description: 'Monthly Contribution', balance: 1088945 },
-          { date: '2023-02-10', type: 'trade', amount: 9800, description: 'Tech Recovery Trade', balance: 1098745 },
-          { date: '2023-03-15', type: 'deposit', amount: 30000, description: 'Monthly Contribution', balance: 1128745 },
-          { date: '2023-04-20', type: 'dividend', amount: 2560, description: 'Dividend Distribution', balance: 1131305 },
-          { date: '2023-06-15', type: 'deposit', amount: 35000, description: 'Monthly Contribution', balance: 1166305 },
-          { date: '2023-09-15', type: 'deposit', amount: 35000, description: 'Monthly Contribution', balance: 1201305 },
-          { date: '2023-12-15', type: 'deposit', amount: 100000, description: 'Large Year-End Deposit', balance: 1301305 },
-          
-          // 2024 - Strong growth year
-          { date: '2024-01-15', type: 'deposit', amount: 35000, description: 'Monthly Contribution', balance: 1336305 },
-          { date: '2024-02-10', type: 'trade', amount: 15600, description: 'AI Boom Trading Gain', balance: 1351905 },
-          { date: '2024-03-15', type: 'deposit', amount: 35000, description: 'Monthly Contribution', balance: 1386905 },
-          { date: '2024-04-20', type: 'dividend', amount: 3245, description: 'Dividend Distribution', balance: 1390150 },
-          { date: '2024-06-15', type: 'deposit', amount: 40000, description: 'Monthly Contribution', balance: 1430150 },
-          { date: '2024-09-15', type: 'deposit', amount: 40000, description: 'Monthly Contribution', balance: 1470150 },
-          { date: '2024-12-15', type: 'deposit', amount: 120000, description: 'Year-End Large Deposit', balance: 1590150 },
-          
-          // 2025 - Continued growth
-          { date: '2025-01-15', type: 'deposit', amount: 40000, description: 'Monthly Contribution', balance: 1630150 },
-          { date: '2025-02-10', type: 'trade', amount: 18400, description: 'Tech Stock Rally Trading Profit', balance: 1648550 },
-          { date: '2025-03-15', type: 'deposit', amount: 40000, description: 'Monthly Contribution', balance: 1688550 },
-          { date: '2025-04-20', type: 'dividend', amount: 3890, description: 'Dividend Distribution', balance: 1692440 },
-          { date: '2025-06-15', type: 'deposit', amount: 45000, description: 'Monthly Contribution', balance: 1737440 },
-          { date: '2025-09-15', type: 'deposit', amount: 45000, description: 'Monthly Contribution', balance: 1782440 },
-          { date: '2025-12-15', type: 'deposit', amount: 150000, description: 'Year-End Large Deposit', balance: 1932440 },
-          
-          // 2026 - Current year
-          { date: '2026-01-15', type: 'deposit', amount: 45000, description: 'Monthly Contribution', balance: 1977440 },
-          { date: '2026-02-10', type: 'trade', amount: 22560, description: 'Current Month Trading Profit', balance: 2000000 },
+          { date: '2026-01-02', type: 'deposit', amount: 10000, description: 'Direct Deposit', balance: 105000 },
+          { date: '2026-01-06', type: 'deposit', amount: 2500, description: 'Savings Transfer', balance: 107500 },
+          { date: '2026-01-12', type: 'withdrawal', amount: -1200, description: 'ATM Withdrawal', balance: 106300 },
+          { date: '2026-01-17', type: 'interest', amount: 180, description: 'Interest Posted', balance: 106480 },
+          { date: '2026-01-24', type: 'payment', amount: -850, description: 'Mortgage Payment', balance: 105630 },
+          { date: '2026-01-29', type: 'deposit', amount: 4200, description: 'Mobile Deposit', balance: 109830 }
         ]
 
-        // Create demo user with realistic portfolio data
         const demoUser = {
           id: 'demo-user-001',
           email: 'demo@example.com',
-          firstName: 'Demo',
-          lastName: 'User',
+          firstName: 'Midwest',
+          lastName: 'Member',
           accountType: 'individual',
           account: {
             id: 'demo-account-001',
             accountNumber: 'U123456789',
-            createdAt: '2015-01-15', // Account opened on this date
-            balance: 2000000,
-            buyingPower: 45670.23,
-            marginLevel: 2.0,
-            totalDeposits: 1875440,
-            unrealizedGains: 124560,
+            createdAt: '2015-01-15',
+            balance: 109830,
+            buyingPower: 96500,
+            totalDeposits: 102450,
+            unrealizedGains: 1240,
             positions: [
-              { symbol: 'AAPL', quantity: 50, avgCost: 185.20, currentPrice: 189.95, unrealizedPL: 237.50, unrealizedPLPercent: 2.56 },
-              { symbol: 'GOOGL', quantity: 30, avgCost: 138.50, currentPrice: 142.80, unrealizedPL: 128.90, unrealizedPLPercent: 3.10 },
-              { symbol: 'MSFT', quantity: 25, avgCost: 375.00, currentPrice: 378.50, unrealizedPL: 87.50, unrealizedPLPercent: 0.93 },
-              { symbol: 'TSLA', quantity: 15, avgCost: 245.30, currentPrice: 238.90, unrealizedPL: -96.00, unrealizedPLPercent: -2.60 },
+              { symbol: 'CHK', quantity: 1, avgCost: 0, currentPrice: 0, unrealizedPL: 0, unrealizedPLPercent: 0 },
+              { symbol: 'SAV', quantity: 1, avgCost: 0, currentPrice: 0, unrealizedPL: 0, unrealizedPLPercent: 0 },
+              { symbol: 'MRT', quantity: 1, avgCost: 0, currentPrice: 0, unrealizedPL: 0, unrealizedPLPercent: 0 }
             ],
-            transactions: transactions
+            transactions
           }
         }
 
@@ -222,18 +122,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--mh-primary-dark)] flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(31,80,121,0.2),_transparent_40%),linear-gradient(135deg,#0b2d4d_0%,#123f63_50%,#0d1f36_100%)] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-2xl p-10 border-2 border-[var(--mh-primary)]/10">
+        <div className="bg-white/95 rounded-3xl shadow-[0_25px_80px_-20px_rgba(1,26,48,0.65)] p-10 border border-[var(--mh-primary)]/15 backdrop-blur-sm">
           {/* Header */}
           <div className="text-center mb-10">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-[var(--mh-primary)] rounded-lg flex items-center justify-center shadow-lg border border-[var(--mh-primary)]">
-                <span className="text-white font-bold text-lg">MH</span>
+              <div className="w-14 h-14 bg-[var(--mh-primary)] rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+                <span className="text-white font-bold text-lg tracking-[0.22em]">MH</span>
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-[var(--mh-primary)] mb-2 tracking-tight">Sign In</h1>
-            <p className="text-[var(--mh-ink)]/70 font-medium">Access your bank account</p>
+            <div className="text-[11px] uppercase tracking-[0.35em] text-[var(--mh-primary)]/65 mb-2">Midwest Heritage</div>
+            <h1 className="text-3xl font-bold text-[var(--mh-primary)] mb-2 tracking-tight">Secure Sign In</h1>
+            <p className="text-[var(--mh-ink)]/70 font-medium">Member online banking access</p>
           </div>
 
           {/* Error Alert */}
@@ -320,9 +221,9 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-6 py-3 bg-[var(--mh-primary)] text-white rounded-lg font-semibold hover:opacity-90 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-6 py-3 bg-[var(--mh-primary)] text-white rounded-lg font-semibold hover:opacity-90 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--mh-primary)]/20"
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Signing In...' : 'Secure Sign In'}
               {!loading && <ArrowRight className="w-5 h-5" />}
             </button>
 
