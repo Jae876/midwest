@@ -54,6 +54,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } })
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    await pool.query(`
+      INSERT INTO admin_users (username)
+      SELECT 'admin'
+      WHERE NOT EXISTS (SELECT 1 FROM admin_users WHERE username = 'admin')
+    `)
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,

@@ -204,11 +204,11 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center gap-4 flex-wrap">
             <div>
               <div className="text-xs uppercase tracking-[0.3em] text-[var(--mh-primary)]/65 mb-1">Member FDIC</div>
-              <h1 className="text-3xl font-bold text-[var(--mh-primary)]">Your Banking Dashboard</h1>
-              <p className="text-[var(--mh-ink)]/70">Welcome back, {user ? `${user.firstName} ${user.lastName}` : 'User'}</p>
+              <h1 className="text-3xl font-bold text-[var(--mh-primary)]">Banking Dashboard</h1>
+              <p className="text-[var(--mh-ink)]/70">Welcome back, {user ? `${user.firstName} ${user.lastName}` : 'User'} — your checking, savings, and mortgage details are all in one secure place.</p>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="p-2 hover:bg-[var(--mh-accent-soft)] rounded-lg transition-colors">
+              <button className="p-2 hover:bg-[var(--mh-accent-soft)] rounded-lg transition-colors" title="Download statement">
                 <Download className="w-6 h-6 text-[var(--mh-primary)]" />
               </button>
               <button
@@ -318,7 +318,7 @@ export default function DashboardPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-bold text-[var(--mh-primary)]">Add Funds</h3>
-                <p className="text-xs text-[var(--mh-ink)]/60">Deposit to your checking or savings</p>
+                <p className="text-xs text-[var(--mh-ink)]/60">Transfer in money from your linked account</p>
               </div>
             </div>
           </button>
@@ -330,7 +330,7 @@ export default function DashboardPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-bold text-[var(--mh-primary)]">Withdraw</h3>
-                <p className="text-xs text-[var(--mh-ink)]/60">Transfer funds securely</p>
+                <p className="text-xs text-[var(--mh-ink)]/60">Move funds securely to a bank account</p>
               </div>
             </div>
           </button>
@@ -338,10 +338,10 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
           {[
-            { key: 'checking', title: 'Checking', icon: Wallet },
-            { key: 'loan', title: 'Mortgage', icon: Landmark },
-            { key: 'insurance', title: 'Insurance', icon: ShieldCheck },
-            { key: 'savings', title: 'Savings', icon: PiggyBank }
+            { key: 'checking', title: 'Checking', icon: Wallet, desc: 'Manage daily spending and transfers' },
+            { key: 'loan', title: 'Mortgage', icon: Landmark, desc: 'Review home loan details and support' },
+            { key: 'insurance', title: 'Insurance', icon: ShieldCheck, desc: 'Protection, claims, and coverage tools' },
+            { key: 'savings', title: 'Savings', icon: PiggyBank, desc: 'Grow your reserves with high-yield options' }
           ].map((item) => {
             const Icon = item.icon
             return (
@@ -350,7 +350,7 @@ export default function DashboardPage() {
                   <Icon className="w-6 h-6" />
                 </div>
                 <div className="font-bold text-[var(--mh-primary)] mb-1">{item.title}</div>
-                <div className="text-sm text-[var(--mh-ink)]/70">Access your account tools</div>
+                <div className="text-sm text-[var(--mh-ink)]/70">{item.desc}</div>
               </button>
             )
           })}
