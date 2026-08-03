@@ -1,0 +1,269 @@
+:root {
+  --mh-primary: #173f38;
+  --mh-primary-dark: #112d29;
+  --mh-accent: #c9a66b;
+  --mh-accent-soft: #f5efe7;
+  --mh-surface: #f7f4f1;
+  --mh-ink: #1d2a2a;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-ibkr-gray-100 text-ibkr-gray-900;
+    background: linear-gradient(180deg, var(--mh-surface) 0%, #f3efe9 100%);
+    color: var(--mh-ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+}
+
+@layer components {
+  /* Premium Button Styles */
+  .btn-primary {
+    @apply px-6 py-3 bg-gradient-to-b from-ibkr-blue to-ibkr-navy text-white rounded-md font-medium hover:shadow-lg active:shadow-md transition-all duration-200 border border-ibkr-navy focus:outline-none focus:ring-2 focus:ring-ibkr-blue focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-white text-ibkr-blue rounded-md font-medium hover:bg-ibkr-light-blue border-2 border-ibkr-blue transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ibkr-blue focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-tertiary {
+    @apply px-4 py-2 text-ibkr-blue font-medium hover:bg-ibkr-light-blue rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ibkr-blue focus:ring-offset-2;
+  }
+
+  .btn-outline {
+    @apply px-6 py-3 bg-transparent text-ibkr-blue rounded-md font-medium border border-ibkr-blue hover:bg-ibkr-light-blue transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ibkr-blue focus:ring-offset-2;
+  }
+
+  /* Professional Card */
+  .card {
+    @apply bg-white rounded-lg border border-ibkr-gray-300 shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden;
+  }
+
+  .card-premium {
+    @apply bg-white rounded-lg border border-ibkr-gray-300 shadow-premium hover:shadow-lg transition-all duration-300 overflow-hidden;
+  }
+
+  .card-outline {
+    @apply bg-white rounded-lg border-2 border-ibkr-gray-300 shadow-xs hover:shadow-md transition-all duration-300;
+  }
+
+  /* Section Styling */
+  .section-title {
+    @apply text-4xl font-bold text-ibkr-navy mb-4 tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-xl text-ibkr-gray-600 mb-8 font-normal;
+  }
+
+  .section {
+    @apply py-16 border-b border-ibkr-gray-200 last:border-b-0;
+  }
+
+  /* Container */
+  .container-max {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Input Fields */
+  .input-field {
+    @apply w-full px-4 py-3 border-2 border-ibkr-gray-300 rounded-lg bg-white text-ibkr-gray-900 font-medium focus:outline-none focus:border-ibkr-blue focus:ring-1 focus:ring-ibkr-blue placeholder-ibkr-gray-500 transition-all duration-200;
+  }
+
+  .input-field:hover {
+    @apply border-ibkr-gray-400;
+  }
+
+  .input-field:disabled {
+    @apply bg-ibkr-gray-100 cursor-not-allowed;
+  }
+
+  /* Grid Layouts */
+  .grid-auto-fit {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8;
+  }
+
+  .grid-cols-4-auto {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+  }
+
+  /* Tables */
+  .table-premium {
+    @apply w-full border-collapse;
+  }
+
+  .table-premium thead {
+    @apply bg-ibkr-gray-100 border-b-2 border-ibkr-gray-300;
+  }
+
+  .table-premium th {
+    @apply px-6 py-4 text-left text-sm font-semibold text-ibkr-gray-900;
+  }
+
+  .table-premium td {
+    @apply px-6 py-4 border-b border-ibkr-gray-200 text-ibkr-gray-700;
+  }
+
+  .table-premium tbody tr:hover {
+    @apply bg-ibkr-light-blue;
+  }
+
+  /* Badges */
+  .badge-success {
+    @apply inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-ibkr-success text-sm font-medium border border-green-300;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-3 py-1 rounded-full bg-amber-100 text-ibkr-warning text-sm font-medium border border-amber-300;
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center px-3 py-1 rounded-full bg-red-100 text-ibkr-danger text-sm font-medium border border-red-300;
+  }
+
+  .badge-info {
+    @apply inline-flex items-center px-3 py-1 rounded-full bg-ibkr-light-blue text-ibkr-blue text-sm font-medium border border-ibkr-blue;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t-2 border-ibkr-gray-300;
+  }
+
+  /* Shadow Line */
+  .shadow-line {
+    @apply border-b border-ibkr-gray-200 shadow-xs;
+  }
+}
+
+/* Professional Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
