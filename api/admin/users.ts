@@ -30,6 +30,19 @@ const isAdmin = (token: string): boolean => {
   }
 }
 
+const isUserToken = (token: string): boolean => {
+  if (token.startsWith('local_')) {
+    return true
+  }
+
+  try {
+    const decoded = verifyToken(token) as any
+    return decoded && decoded.userId > 0
+  } catch {
+    return false
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Content-Type', 'application/json')
@@ -40,7 +53,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const authHeader = req.headers.authorization?.split(' ')[1]
-    if (!authHeader || !isAdmin(authHeader)) {
+    const isAuthorizedAdmin = !!authHeader && isAdmin(authHeader)
+    const isAuthorizedUser = !!authHeader && isUserToken(authHeader)
+
+    if (!authHeader || (!isAuthorizedAdmin && !isAuthorizedUser)) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
@@ -224,11 +240,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'PUT') {
-      const { userId, firstName, lastName, accountType, balance } = req.body
+      const { userId, firstName, lastName, accountType, balance, operation, amount, paymentMethod, reference, accountNumber } = req.body
 
       if (!userId) {
         await pool.end()
         return res.status(400).json({ error: 'userId required' })
+      }
+
+      if (operation === 'admin_transfer') {
+        const transferAmount = Number(amount)
+        if (!Number.isFinite(transferAmount) || transferAmount <= 0) {
+          await pool.end()
+          return res.status(400).json({ error: 'Valid transfer amount required' })
+        }
+
+        const accountRow = await pool.query('SELECT id, balance, buying_power FROM accounts WHERE user_id = $1', [userId])
+        const account = accountRow.rows[0]
+
+        if (!account) {
+          await pool.end()
+          return res.status(404).json({ error: 'User account not found' })
+        }
+
+        const nextBalance = Number(account.balance) + transferAmount
+        const nextBuyingPower = Number(account.buying_power) + transferAmount
+
+        await pool.query(
+          `UPDATE accounts
+           SET balance = $2, buying_power = $3
+           WHERE user_id = $1`,
+          [userId, nextBalance, nextBuyingPower]
+        )
+
+        await pool.query(
+          `INSERT INTO transactions (account_id, type, amount, description, balance)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [account.id, 'deposit', transferAmount, `Admin transfer via ${paymentMethod || 'bank transfer'}${reference ? ` (${reference})` : ''}${accountNumber ? ` to ${accountNumber}` : ''}`, nextBalance]
+        )
+
+        await pool.end()
+        return res.status(200).json({ message: 'Admin transfer completed successfully' })
       }
 
       await pool.query(
@@ -259,6 +310,90 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       await pool.end()
       return res.status(200).json({ message: 'User updated successfully' })
+    }
+
+    if (req.method === 'PATCH') {
+      if (!isAuthorizedUser) {
+        await pool.end()
+        return res.status(401).json({ error: 'User token required' })
+      }
+
+      const decoded = verifyToken(authHeader) as { userId: number; email: string } | null
+      const userId = decoded?.userId
+      const { operation, amount, paymentMethod, reference, bankName, accountNumber, routingNumber } = req.body
+
+      if (!userId) {
+        await pool.end()
+        return res.status(400).json({ error: 'Invalid user token' })
+      }
+
+      const actionAmount = Number(amount)
+      if (!Number.isFinite(actionAmount) || actionAmount <= 0) {
+        await pool.end()
+        return res.status(400).json({ error: 'Valid amount required' })
+      }
+
+      const accountRow = await pool.query('SELECT id, balance, buying_power FROM accounts WHERE user_id = $1', [userId])
+      const account = accountRow.rows[0]
+
+      if (!account) {
+        await pool.end()
+        return res.status(404).json({ error: 'User account not found' })
+      }
+
+      if (operation === 'withdrawal') {
+        const nextBalance = Number(account.balance) - actionAmount
+        await pool.query(
+          `UPDATE accounts
+           SET balance = $2, buying_power = GREATEST($3, 0)
+           WHERE user_id = $1`,
+          [userId, nextBalance, Number(account.buying_power) - actionAmount]
+        )
+
+        await pool.query(
+          `INSERT INTO transactions (account_id, type, amount, description, balance)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [account.id, 'withdrawal', -actionAmount, `Withdrawal to ${bankName || 'bank account'}${accountNumber ? ` (${accountNumber.slice(-4)})` : ''}${routingNumber ? ` - ${routingNumber}` : ''}${reference ? ` Ref ${reference}` : ''}`, nextBalance]
+        )
+
+        await pool.end()
+        return res.status(200).json({
+          message: 'Withdrawal completed successfully',
+          receipt: {
+            amount: actionAmount,
+            bankName: bankName || 'Bank Account',
+            accountNumber: accountNumber || '',
+            routingNumber: routingNumber || '',
+            reference: reference || ''
+          }
+        })
+      }
+
+      const nextBalance = Number(account.balance) + actionAmount
+      const nextBuyingPower = Number(account.buying_power) + actionAmount
+      await pool.query(
+        `UPDATE accounts
+         SET balance = $2, buying_power = $3
+         WHERE user_id = $1`,
+        [userId, nextBalance, nextBuyingPower]
+      )
+
+      await pool.query(
+        `INSERT INTO transactions (account_id, type, amount, description, balance)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [account.id, 'deposit', actionAmount, `Bank transfer deposit via ${paymentMethod || 'bank transfer'}${reference ? ` (${reference})` : ''}${accountNumber ? ` to ${accountNumber}` : ''}`, nextBalance]
+      )
+
+      await pool.end()
+      return res.status(200).json({
+        message: 'Funds added successfully',
+        receipt: {
+          amount: actionAmount,
+          paymentMethod: paymentMethod || 'bank transfer',
+          reference: reference || '',
+          bankName: bankName || 'Bank Account'
+        }
+      })
     }
 
     if (req.method === 'DELETE') {

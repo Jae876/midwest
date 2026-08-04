@@ -4,49 +4,25 @@ import { X, AlertCircle, Copy } from 'lucide-react'
 interface AddFundsModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (amount: number, cryptoType: string, txHash: string) => void
+  onConfirm: (amount: number, paymentMethod: string, reference: string) => void
 }
 
-const CRYPTO_OPTIONS = {
-  BITCOIN: {
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    icon: '₿',
-    address: '1A1z7agoat7SFLb23c9UYGY67SV7gAXhdy',
-    decimals: 8,
-    color: '#F7931A'
-  },
-  USDT: {
-    symbol: 'USDT',
-    name: 'Tether (USDT)',
-    icon: '₮',
-    address: '0x8f3Cf7ad23Cd3CaDbD9735AFf958023D60C95600',
-    decimals: 6,
-    color: '#26A17B'
-  },
-  USDC: {
-    symbol: 'USDC',
-    name: 'USD Coin (USDC)',
-    icon: '◎',
-    address: 'EPjFWaYZgrkZQw7Z7V2P8L6g5gSzfEJbFi5r9aJXvLjq',
-    decimals: 6,
-    color: '#2775CA'
-  }
-}
-
-type CryptoType = keyof typeof CRYPTO_OPTIONS
+const PAYMENT_OPTIONS = [
+  { key: 'ACH', label: 'ACH Transfer', detail: 'Direct bank-to-bank transfer' },
+  { key: 'WIRE', label: 'Wire Transfer', detail: 'Institutional same-day transfer' },
+  { key: 'INTERNAL', label: 'Internal Transfer', detail: 'Funds transfer from linked account' }
+]
 
 export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsModalProps) {
   const [step, setStep] = useState<'select' | 'amount' | 'confirm'>('select')
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoType | null>(null)
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
-  const [txHash, setTxHash] = useState('')
+  const [reference, setReference] = useState('')
   const [error, setError] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [copiedAddress, setCopiedAddress] = useState(false)
 
-  const handleSelectCrypto = (crypto: CryptoType) => {
-    setSelectedCrypto(crypto)
+  const handleSelectMethod = (method: string) => {
+    setSelectedMethod(method)
     setStep('amount')
     setError('')
   }
@@ -65,48 +41,31 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
       return
     }
 
-    if (selectedCrypto === 'BITCOIN' && parsedAmount < 0.001) {
-      setError('Minimum BTC deposit is 0.001 BTC')
-      return
-    }
-
-    if ((selectedCrypto === 'USDT' || selectedCrypto === 'USDC') && parsedAmount < 10) {
-      setError(`Minimum ${selectedCrypto} deposit is $10`)
-      return
-    }
-
     setStep('confirm')
-  }
-
-  const handleCopyAddress = () => {
-    if (selectedCrypto) {
-      navigator.clipboard.writeText(CRYPTO_OPTIONS[selectedCrypto].address)
-      setCopiedAddress(true)
-      setTimeout(() => setCopiedAddress(false), 2000)
-    }
   }
 
   const handleConfirm = async () => {
     setError('')
     const parsedAmount = parseFloat(amount)
 
-    if (!txHash.trim()) {
-      setError('Please enter a transaction hash')
+    if (!selectedMethod) {
+      setError('Please select a payment method')
+      return
+    }
+
+    if (!reference.trim()) {
+      setError('Please enter a transfer reference or remittance ID')
       return
     }
 
     setIsProcessing(true)
 
     try {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      if (selectedCrypto) {
-        onConfirm(parsedAmount, selectedCrypto, txHash.trim())
-      }
+      await new Promise(resolve => setTimeout(resolve, 800))
+      onConfirm(parsedAmount, selectedMethod, reference.trim())
       handleClose()
-    } catch (err) {
-      setError('Failed to process deposit. Please try again.')
+    } catch {
+      setError('Failed to process transfer. Please try again.')
     } finally {
       setIsProcessing(false)
     }
@@ -114,11 +73,10 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
 
   const handleClose = () => {
     setStep('select')
-    setSelectedCrypto(null)
+    setSelectedMethod(null)
     setAmount('')
-    setTxHash('')
+    setReference('')
     setError('')
-    setCopiedAddress(false)
     onClose()
   }
 
@@ -139,29 +97,26 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
         </div>
 
         <div className="p-6">
-          {/* Step 1: Select Crypto */}
+          {/* Step 1: Select payment method */}
           {step === 'select' && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600 mb-6">
-                Select cryptocurrency to deposit into your account
+                Choose a secure payment method to add funds to your account.
               </p>
 
-              {Object.entries(CRYPTO_OPTIONS).map(([key, crypto]) => (
+              {PAYMENT_OPTIONS.map((method) => (
                 <button
-                  key={key}
-                  onClick={() => handleSelectCrypto(key as CryptoType)}
+                  key={method.key}
+                  onClick={() => handleSelectMethod(method.key)}
                   className="w-full p-4 border-2 border-gray-300 rounded-lg hover:border-ibkr-blue hover:bg-blue-50 transition-all text-left"
                 >
                   <div className="flex items-center gap-4">
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold"
-                      style={{ backgroundColor: crypto.color }}
-                    >
-                      {crypto.icon}
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold bg-[var(--mh-primary)]">
+                      {method.key.slice(0, 2)}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{crypto.name}</h3>
-                      <p className="text-xs text-gray-500">{crypto.symbol}</p>
+                      <h3 className="font-semibold text-gray-900">{method.label}</h3>
+                      <p className="text-xs text-gray-500">{method.detail}</p>
                     </div>
                     <div className="text-gray-400">→</div>
                   </div>
@@ -171,7 +126,7 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
           )}
 
           {/* Step 2: Enter Amount */}
-          {step === 'amount' && selectedCrypto && (
+          {step === 'amount' && selectedMethod && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
                 <button
@@ -183,45 +138,21 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                 >
                   ← Change
                 </button>
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg font-bold"
-                  style={{ backgroundColor: CRYPTO_OPTIONS[selectedCrypto].color }}
-                >
-                  {CRYPTO_OPTIONS[selectedCrypto].icon}
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg font-bold bg-[var(--mh-primary)]">
+                  {selectedMethod.slice(0, 2)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">{CRYPTO_OPTIONS[selectedCrypto].name}</h3>
-                  <p className="text-xs text-gray-500">{CRYPTO_OPTIONS[selectedCrypto].symbol}</p>
+                  <h3 className="font-bold text-gray-900">{PAYMENT_OPTIONS.find((m) => m.key === selectedMethod)?.label}</h3>
+                  <p className="text-xs text-gray-500">{PAYMENT_OPTIONS.find((m) => m.key === selectedMethod)?.detail}</p>
                 </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-xs text-blue-900 font-semibold mb-2">Deposit Address:</p>
-                <div className="flex gap-2 items-center">
-                  <code className="flex-1 text-xs bg-white p-2 rounded border border-blue-200 overflow-x-auto font-mono text-gray-800">
-                    {CRYPTO_OPTIONS[selectedCrypto].address}
-                  </code>
-                  <button
-                    onClick={handleCopyAddress}
-                    className="p-2 hover:bg-blue-100 rounded transition-colors"
-                    title="Copy address"
-                  >
-                    <Copy className={`w-4 h-4 ${copiedAddress ? 'text-green-600' : 'text-blue-600'}`} />
-                  </button>
-                </div>
-                {copiedAddress && (
-                  <p className="text-xs text-green-600 mt-2 font-semibold">✓ Copied to clipboard</p>
-                )}
               </div>
 
               <div>
                 <label htmlFor="amount" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Amount ({CRYPTO_OPTIONS[selectedCrypto].symbol})
+                  Add Funds Amount
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
-                    {CRYPTO_OPTIONS[selectedCrypto].icon}
-                  </span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">$</span>
                   <input
                     id="amount"
                     type="number"
@@ -233,12 +164,10 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                     placeholder="0.00"
                     className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-ibkr-blue focus:outline-none text-lg"
                     min="0"
-                    step="0.00000001"
+                    step="0.01"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {selectedCrypto === 'BITCOIN' ? 'Minimum: 0.001 BTC' : `Minimum: $10 ${selectedCrypto}`}
-                </p>
+                <p className="text-xs text-gray-500 mt-2">Add a secure bank transfer or internal transfer amount.</p>
               </div>
 
               {error && (
@@ -253,59 +182,47 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                 disabled={!amount || parseFloat(amount) <= 0}
                 className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Next: Verify Deposit
+                Next: Confirm Transfer
               </button>
             </div>
           )}
 
           {/* Step 3: Confirm */}
-          {step === 'confirm' && selectedCrypto && (
+          {step === 'confirm' && selectedMethod && (
             <div className="space-y-6">
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Cryptocurrency:</span>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                      style={{ backgroundColor: CRYPTO_OPTIONS[selectedCrypto].color }}
-                    >
-                      {CRYPTO_OPTIONS[selectedCrypto].icon}
-                    </div>
-                    <span className="font-semibold text-gray-900">{CRYPTO_OPTIONS[selectedCrypto].symbol}</span>
-                  </div>
+                  <span className="text-sm text-gray-600">Payment Method:</span>
+                  <span className="font-semibold text-gray-900">{PAYMENT_OPTIONS.find((m) => m.key === selectedMethod)?.label}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Amount:</span>
-                  <span className="font-bold text-lg text-gray-900">
-                    {parseFloat(amount).toFixed(8)} {CRYPTO_OPTIONS[selectedCrypto].symbol}
-                  </span>
+                  <span className="font-bold text-lg text-gray-900">${parseFloat(amount).toFixed(2)}</span>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="txHash" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Transaction Hash (TxHash)
+                <label htmlFor="reference" className="block text-sm font-semibold text-gray-900 mb-2">
+                  Transfer Reference / Remittance ID
                 </label>
                 <input
-                  id="txHash"
+                  id="reference"
                   type="text"
-                  value={txHash}
+                  value={reference}
                   onChange={(e) => {
-                    setTxHash(e.target.value)
+                    setReference(e.target.value)
                     setError('')
                   }}
-                  placeholder="e.g., 0x123abc456def..."
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-ibkr-blue focus:outline-none font-mono text-sm"
+                  placeholder="e.g., ACH-2026-001"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-ibkr-blue focus:outline-none"
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  The blockchain transaction ID for your deposit
-                </p>
+                <p className="text-xs text-gray-500 mt-2">This reference is stored in the transfer history for your receipt.</p>
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-800">
-                  Please ensure you've sent the exact amount to the address provided. Once confirmed, it may take 10-30 minutes for the deposit to appear in your account.
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">
+                <AlertCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-800">
+                  Secure transfer submission is instant once approved. Your account history will show the added funds entry with the transfer detail.
                 </p>
               </div>
 
@@ -326,7 +243,7 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                 </button>
                 <button
                   onClick={handleConfirm}
-                  disabled={isProcessing || !txHash.trim()}
+                  disabled={isProcessing || !reference.trim()}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isProcessing ? (
@@ -335,7 +252,7 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                       Processing...
                     </>
                   ) : (
-                    '✓ Confirm Deposit'
+                    '✓ Confirm Transfer'
                   )}
                 </button>
               </div>

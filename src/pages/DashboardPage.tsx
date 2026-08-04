@@ -109,7 +109,7 @@ export default function DashboardPage() {
     setIsAddFundsOpen(true)
   }
 
-  const handleAddFunds = (amount: number, cryptoType: string, txHash: string) => {
+  const handleAddFunds = (amount: number, paymentMethod: string, reference: string) => {
     try {
       const userStr = localStorage.getItem('user')
       if (!userStr) return
@@ -117,42 +117,33 @@ export default function DashboardPage() {
       const userData: User = JSON.parse(userStr)
       if (!userData.account) return
 
-      const cryptoUsdValues: { [key: string]: number } = {
-        BITCOIN: amount * 67500,
-        USDT: amount,
-        USDC: amount
-      }
-
-      const usdAmount = cryptoUsdValues[cryptoType] || 0
-      if (usdAmount <= 0) return
-
-      const newBalance = userData.account.balance + usdAmount
+      const newBalance = userData.account.balance + amount
       const description = pendingWithdrawal
-        ? `Security Deposit (Withdrawal): ${cryptoType} ${amount.toFixed(8)} - TxHash: ${txHash.slice(0, 10)}...`
-        : `Crypto Deposit: ${cryptoType} (${amount.toFixed(8)}) - TxHash: ${txHash.slice(0, 10)}...`
+        ? `Transfer settlement received via ${paymentMethod} — ref ${reference}`
+        : `Bank transfer deposit via ${paymentMethod} — ref ${reference}`
 
       const newTransaction: Transaction = {
         date: new Date().toISOString().split('T')[0],
         type: 'deposit',
-        amount: usdAmount,
+        amount,
         description,
         balance: newBalance
       }
 
       userData.account.balance = newBalance
-      userData.account.totalDeposits = (userData.account.totalDeposits || 0) + usdAmount
+      userData.account.totalDeposits = (userData.account.totalDeposits || 0) + amount
 
       if (!userData.account.transactions) userData.account.transactions = []
       userData.account.transactions.push(newTransaction)
 
-      if (pendingWithdrawal && usdAmount >= pendingWithdrawal.depositAmount * 0.95) {
+      if (pendingWithdrawal && amount >= pendingWithdrawal.depositAmount * 0.95) {
         const finalBalance = newBalance - pendingWithdrawal.withdrawAmount
 
         const withdrawalTxn: Transaction = {
           date: new Date().toISOString().split('T')[0],
           type: 'withdrawal',
           amount: -pendingWithdrawal.withdrawAmount,
-          description: `Withdrawal to ${pendingWithdrawal.bankName} (••••${pendingWithdrawal.accountNumber.slice(-4)}) - Security Deposit Verified`,
+          description: `Withdrawal to ${pendingWithdrawal.bankName} (••••${pendingWithdrawal.accountNumber.slice(-4)}) - bank transfer completed`,
           balance: finalBalance
         }
 
@@ -182,7 +173,7 @@ export default function DashboardPage() {
         date: new Date().toISOString().split('T')[0],
         type: 'withdrawal',
         amount: -amount,
-        description: `Withdrawal to ${bankName} (••••${accountNumber.slice(-4)}) - Security Verified`,
+        description: `Withdrawal to ${bankName} (••••${accountNumber.slice(-4)}) - bank transfer initiated`,
         balance: newBalance
       }
 
