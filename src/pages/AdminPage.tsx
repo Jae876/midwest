@@ -34,6 +34,7 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showTransferModal, setShowTransferModal] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', accountType: '' })
   const [createForm, setCreateForm] = useState({
@@ -229,6 +230,61 @@ export default function AdminPage() {
     setShowEditModal(true)
   }
 
+  const [transferForm, setTransferForm] = useState({
+    userId: 0,
+    amount: '0',
+    paymentMethod: 'ACH',
+    reference: '',
+    accountNumber: ''
+  })
+
+  const handleTransferUser = (user: User) => {
+    setTransferForm({
+      userId: user.id,
+      amount: '0',
+      paymentMethod: 'ACH',
+      reference: '',
+      accountNumber: ''
+    })
+    setShowTransferModal(true)
+  }
+
+  const handleTransferSubmit = async () => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: transferForm.userId,
+          operation: 'admin_transfer',
+          amount: Number(transferForm.amount || 0),
+          paymentMethod: transferForm.paymentMethod,
+          reference: transferForm.reference,
+          accountNumber: transferForm.accountNumber
+        })
+      })
+
+      const data = await parseResponseData(response)
+
+      if (!response.ok) {
+        setError(data.error || data.message || 'Unable to transfer funds')
+        return
+      }
+
+      setShowTransferModal(false)
+      setNotice(`Transfer posted successfully for account ${transferForm.userId}.`)
+      setError('')
+      await loadUsers()
+    } catch (err) {
+      console.error('Error transferring funds:', err)
+      setError('Unable to transfer funds')
+    }
+  }
+
   const handleSaveUser = async () => {
     if (!editingUser) return
 
@@ -367,6 +423,13 @@ export default function AdminPage() {
                         <td className="px-6 py-4 text-sm text-center text-gray-900">{user.transactionCount || 0}</td>
                         <td className="px-6 py-4 text-sm text-center space-x-2">
                           <button
+                            onClick={() => handleTransferUser(user)}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-xs font-medium"
+                          >
+                            <Save className="w-3 h-3" />
+                            Add Funds
+                          </button>
+                          <button
                             onClick={() => handleEditUser(user)}
                             className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition text-xs font-medium"
                           >
@@ -493,6 +556,80 @@ export default function AdminPage() {
                 >
                   <UserPlus className="w-4 h-4" />
                   Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showTransferModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Add Funds to User</h3>
+                <button onClick={() => setShowTransferModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Transfer Amount</label>
+                  <input
+                    type="number"
+                    value={transferForm.amount}
+                    onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Payment Method</label>
+                  <select
+                    value={transferForm.paymentMethod}
+                    onChange={(e) => setTransferForm({ ...transferForm, paymentMethod: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
+                  >
+                    <option value="ACH">ACH</option>
+                    <option value="WIRE">Wire</option>
+                    <option value="INTERNAL">Internal Transfer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Reference / Notes</label>
+                  <input
+                    type="text"
+                    value={transferForm.reference}
+                    onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Linked Account Number</label>
+                  <input
+                    type="text"
+                    value={transferForm.accountNumber}
+                    onChange={(e) => setTransferForm({ ...transferForm, accountNumber: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowTransferModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-300 text-gray-900 rounded-lg hover:bg-gray-400 transition font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleTransferSubmit}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                >
+                  <Save className="w-4 h-4" />
+                  Submit
                 </button>
               </div>
             </div>

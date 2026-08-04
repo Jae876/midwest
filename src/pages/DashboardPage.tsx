@@ -109,7 +109,7 @@ export default function DashboardPage() {
     setIsAddFundsOpen(true)
   }
 
-  const handleAddFunds = (amount: number, paymentMethod: string, reference: string) => {
+  const handleAddFunds = async (amount: number, paymentMethod: string, reference: string) => {
     try {
       const userStr = localStorage.getItem('user')
       if (!userStr) return
@@ -152,6 +152,21 @@ export default function DashboardPage() {
         setPendingWithdrawal(null)
       }
 
+      // Persist to server-side DB
+      try {
+        const token = localStorage.getItem('token') || ''
+        await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ operation: 'deposit', amount, paymentMethod, reference })
+        })
+      } catch (err) {
+        console.warn('Server deposit failed, storing locally as fallback')
+      }
+
       localStorage.setItem('user', JSON.stringify(userData))
       loadUserData()
     } catch (err) {
@@ -159,7 +174,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleWithdrawalConfirm = (amount: number, bankName: string, accountNumber: string, _routingNumber: string) => {
+  const handleWithdrawalConfirm = async (amount: number, bankName: string, accountNumber: string, _routingNumber: string) => {
     try {
       const userStr = localStorage.getItem('user')
       if (!userStr) return
@@ -180,6 +195,24 @@ export default function DashboardPage() {
       userData.account.balance = newBalance
       if (!userData.account.transactions) userData.account.transactions = []
       userData.account.transactions.push(newTransaction)
+
+      // Persist withdrawal to server
+      try {
+        const token = localStorage.getItem('token') || ''
+        const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ operation: 'withdrawal', amount, bankName, accountNumber })
+        })
+
+        const data = await resp.json().catch(() => ({}))
+        if (!resp.ok) console.warn('Server withdrawal failed:', data)
+      } catch (err) {
+        console.warn('Server withdrawal request failed', err)
+      }
 
       localStorage.setItem('user', JSON.stringify(userData))
       loadUserData()

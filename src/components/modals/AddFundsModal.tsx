@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, AlertCircle, Copy } from 'lucide-react'
+import { X, AlertCircle } from 'lucide-react'
 
 interface AddFundsModalProps {
   isOpen: boolean

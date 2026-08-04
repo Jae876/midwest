@@ -55,7 +55,6 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
         : `✓ Account is ${Math.floor(accountAgeYears)} years old (5+ years)`
       return { percentage: 0, reason }
     } else {
-      const yearsLeft = (5 - accountAgeYears).toFixed(1)
       return { 
         percentage: 0,
         reason: `Eligible for standard routed transfer review.`
