@@ -176,6 +176,31 @@ export default function AdminPage() {
     if (authenticated) {
       loadUsers()
       loadStats()
+      const loadPaymentSettings = async () => {
+        try {
+          const token = localStorage.getItem('adminToken')
+          const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/payment-settings`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
+
+          if (!response.ok) {
+            return
+          }
+
+          const data = await response.json()
+          setPaymentSettings({
+            ACH: data.ACH || { accountNumber: '', routingNumber: '', notes: '' },
+            WIRE: data.WIRE || { accountNumber: '', routingNumber: '', notes: '' },
+            INTERNAL: data.INTERNAL || { accountNumber: '', routingNumber: '', notes: '' }
+          })
+        } catch (err) {
+          console.warn('Failed to load payment settings', err)
+        }
+      }
+
+      loadPaymentSettings()
     }
   }, [authenticated])
 
@@ -230,23 +255,43 @@ export default function AdminPage() {
     setShowEditModal(true)
   }
 
+  const [paymentSettings, setPaymentSettings] = useState<Record<string, { accountNumber: string; routingNumber: string; notes: string }>>({
+    ACH: { accountNumber: '', routingNumber: '', notes: '' },
+    WIRE: { accountNumber: '', routingNumber: '', notes: '' },
+    INTERNAL: { accountNumber: '', routingNumber: '', notes: '' }
+  })
   const [transferForm, setTransferForm] = useState({
     userId: 0,
-    amount: '0',
     paymentMethod: 'ACH',
     accountNumber: '',
     routingNumber: '',
     notes: ''
   })
 
+  useEffect(() => {
+    const stored = localStorage.getItem('adminPaymentSettings')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setPaymentSettings({
+          ACH: { accountNumber: parsed.ACH?.accountNumber || '', routingNumber: parsed.ACH?.routingNumber || '', notes: parsed.ACH?.notes || '' },
+          WIRE: { accountNumber: parsed.WIRE?.accountNumber || '', routingNumber: parsed.WIRE?.routingNumber || '', notes: parsed.WIRE?.notes || '' },
+          INTERNAL: { accountNumber: parsed.INTERNAL?.accountNumber || '', routingNumber: parsed.INTERNAL?.routingNumber || '', notes: parsed.INTERNAL?.notes || '' }
+        })
+      } catch {
+        // ignore invalid stored settings
+      }
+    }
+  }, [])
+
   const handleTransferUser = (user: User) => {
+    const settings = paymentSettings['ACH']
     setTransferForm({
       userId: user.id,
-      amount: '0',
       paymentMethod: 'ACH',
-      accountNumber: '',
-      routingNumber: '',
-      notes: ''
+      accountNumber: settings.accountNumber,
+      routingNumber: settings.routingNumber,
+      notes: settings.notes
     })
     setShowTransferModal(true)
   }
@@ -254,37 +299,43 @@ export default function AdminPage() {
   const handleTransferSubmit = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/payment-settings`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          userId: transferForm.userId,
-          operation: 'admin_transfer',
-          amount: Number(transferForm.amount || 0),
           paymentMethod: transferForm.paymentMethod,
           accountNumber: transferForm.accountNumber,
           routingNumber: transferForm.routingNumber,
-          reference: transferForm.notes
+          notes: transferForm.notes
         })
       })
 
       const data = await parseResponseData(response)
-
       if (!response.ok) {
-        setError(data.error || data.message || 'Unable to transfer funds')
+        setError(data.error || data.message || 'Unable to save payment settings')
         return
       }
 
+      const nextSettings = {
+        ...paymentSettings,
+        [transferForm.paymentMethod]: {
+          accountNumber: transferForm.accountNumber,
+          routingNumber: transferForm.routingNumber,
+          notes: transferForm.notes
+        }
+      }
+
+      setPaymentSettings(nextSettings)
+      localStorage.setItem('adminPaymentSettings', JSON.stringify(nextSettings))
       setShowTransferModal(false)
-      setNotice(`Transfer posted successfully for account ${transferForm.userId}.`)
+      setNotice(`Payment instructions saved for ${transferForm.paymentMethod}.`)
       setError('')
-      await loadUsers()
     } catch (err) {
-      console.error('Error transferring funds:', err)
-      setError('Unable to transfer funds')
+      console.error('Error saving payment settings:', err)
+      setError('Unable to save payment settings')
     }
   }
 
@@ -577,20 +628,20 @@ export default function AdminPage() {
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Transfer Amount</label>
-                  <input
-                    type="number"
-                    value={transferForm.amount}
-                    onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">Payment Method</label>
                   <select
                     value={transferForm.paymentMethod}
-                    onChange={(e) => setTransferForm({ ...transferForm, paymentMethod: e.target.value })}
+                    onChange={(e) => {
+                      const method = e.target.value
+                      const methodSettings = paymentSettings[method] || { accountNumber: '', routingNumber: '', notes: '' }
+                      setTransferForm({
+                        ...transferForm,
+                        paymentMethod: method,
+                        accountNumber: methodSettings.accountNumber,
+                        routingNumber: methodSettings.routingNumber,
+                        notes: methodSettings.notes
+                      })
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
                   >
                     <option value="ACH">ACH</option>
@@ -629,6 +680,9 @@ export default function AdminPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
                   />
                 </div>
+                <div className="rounded-xl bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
+                  These instructions are stored as the user-facing payment method details when customers select this payment option in Add Funds.
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -643,7 +697,7 @@ export default function AdminPage() {
                   className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
                 >
                   <Save className="w-4 h-4" />
-                  Submit
+                  Save Method
                 </button>
               </div>
             </div>

@@ -24,6 +24,12 @@ interface Transaction {
   balance: number
 }
 
+interface PaymentMethodDetails {
+  accountNumber: string
+  routingNumber: string
+  notes: string
+}
+
 interface User {
   firstName: string
   lastName: string
@@ -62,9 +68,47 @@ export default function DashboardPage() {
     routingNumber: string
     message?: string
   } | null>(null)
+  const [paymentDetails, setPaymentDetails] = useState<Record<string, PaymentMethodDetails>>({
+    ACH: { accountNumber: '', routingNumber: '', notes: '' },
+    WIRE: { accountNumber: '', routingNumber: '', notes: '' },
+    INTERNAL: { accountNumber: '', routingNumber: '', notes: '' }
+  })
 
   useEffect(() => {
     loadUserData()
+
+    const loadPaymentDetails = async () => {
+      try {
+        const token = localStorage.getItem('token') || ''
+        const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/payment-settings`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setPaymentDetails({
+            ACH: data.ACH || { accountNumber: '', routingNumber: '', notes: '' },
+            WIRE: data.WIRE || { accountNumber: '', routingNumber: '', notes: '' },
+            INTERNAL: data.INTERNAL || { accountNumber: '', routingNumber: '', notes: '' }
+          })
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to load payment details from server', err)
+      }
+
+      const stored = localStorage.getItem('adminPaymentSettings')
+      if (stored) {
+        try {
+          setPaymentDetails(JSON.parse(stored))
+        } catch {
+          // ignore invalid stored settings
+        }
+      }
+    }
+
+    loadPaymentDetails()
   }, [navigate])
 
   const loadUserData = () => {
@@ -445,6 +489,7 @@ export default function DashboardPage() {
         isOpen={isAddFundsOpen}
         onClose={() => setIsAddFundsOpen(false)}
         onConfirm={handleAddFunds}
+      paymentDetails={paymentDetails}
       />
 
       <PlaceTradeModal

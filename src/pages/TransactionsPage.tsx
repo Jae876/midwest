@@ -23,6 +23,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([])
   const [filterType, setFilterType] = useState<string>('all')
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
 
   useEffect(() => {
     try {
@@ -52,6 +53,7 @@ export default function TransactionsPage() {
     } else {
       setFilteredTransactions(transactions.filter(t => t.type === type))
     }
+    setSelectedTransaction(null)
   }
 
   const getIconForType = (type: string) => {
@@ -235,6 +237,40 @@ export default function TransactionsPage() {
         </div>
 
         {/* Transactions Table */}
+        {selectedTransaction && (
+          <div className="card mb-6 p-6 bg-white border border-blue-100 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-blue-500 font-semibold mb-2">Selected Transaction</p>
+                <h2 className="text-xl font-bold text-gray-900">{selectedTransaction.type === 'withdrawal' ? 'Withdrawal Details' : 'Transaction Details'}</h2>
+                <p className="text-sm text-gray-600 mt-2">Click any row to view the transaction description and settlement details.</p>
+              </div>
+              <button
+                onClick={() => setSelectedTransaction(null)}
+                className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Deselect
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-4">
+              <div className="rounded-2xl border border-gray-200 p-4 bg-slate-50">
+                <p className="text-xs text-gray-500 uppercase tracking-[0.16em] mb-2">Date</p>
+                <p className="text-sm font-semibold text-gray-900">{new Date(selectedTransaction.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 p-4 bg-slate-50">
+                <p className="text-xs text-gray-500 uppercase tracking-[0.16em] mb-2">Amount</p>
+                <p className={`text-sm font-semibold ${selectedTransaction.amount >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {selectedTransaction.amount >= 0 ? '+' : ''}${Math.abs(selectedTransaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 p-4 bg-slate-50 md:col-span-2">
+                <p className="text-xs text-gray-500 uppercase tracking-[0.16em] mb-2">Description</p>
+                <p className="text-sm text-gray-700">{selectedTransaction.description}</p>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -249,8 +285,12 @@ export default function TransactionsPage() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredTransactions.map((transaction, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
+                  <tr
+                    key={index}
+                    className={`hover:bg-gray-50 transition-colors ${selectedTransaction === transaction ? 'bg-blue-50' : ''}`}
+                    onClick={() => setSelectedTransaction(transaction)}
+                  >
+                    <td className="px-6 py-4 cursor-pointer">
                       <span className="text-sm font-medium text-gray-900">
                         {new Date(transaction.date).toLocaleDateString('en-US', {
                           year: 'numeric',

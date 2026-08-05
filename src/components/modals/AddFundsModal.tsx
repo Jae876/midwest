@@ -1,10 +1,17 @@
 import { useState } from 'react'
 import { X, AlertCircle } from 'lucide-react'
 
+interface PaymentMethodDetails {
+  accountNumber: string
+  routingNumber: string
+  notes: string
+}
+
 interface AddFundsModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: (amount: number, paymentMethod: string, reference: string) => void
+  paymentDetails: Record<string, PaymentMethodDetails>
 }
 
 const PAYMENT_OPTIONS = [
@@ -13,7 +20,7 @@ const PAYMENT_OPTIONS = [
   { key: 'INTERNAL', label: 'Internal Transfer', detail: 'Funds transfer from linked account' }
 ]
 
-export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsModalProps) {
+export default function AddFundsModal({ isOpen, onClose, onConfirm, paymentDetails }: AddFundsModalProps) {
   const [step, setStep] = useState<'select' | 'amount' | 'confirm'>('select')
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
@@ -79,6 +86,8 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
     setError('')
     onClose()
   }
+
+  const methodDetails = selectedMethod ? paymentDetails[selectedMethod] : null
 
   if (!isOpen) return null
 
@@ -147,6 +156,28 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                 </div>
               </div>
 
+              <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+                <p className="text-sm text-gray-700 font-semibold mb-3">Payment Instructions</p>
+                {methodDetails && methodDetails.accountNumber ? (
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <div>
+                      <p className="font-semibold text-gray-900">Destination Account Number</p>
+                      <p>{methodDetails.accountNumber}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Routing Number</p>
+                      <p>{methodDetails.routingNumber || 'Not configured'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Optional Notes</p>
+                      <p>{methodDetails.notes || 'No notes available'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">Admin has not configured payment details for this method yet.</p>
+                )}
+              </div>
+
               <div>
                 <label htmlFor="amount" className="block text-sm font-semibold text-gray-900 mb-2">
                   Add Funds Amount
@@ -199,6 +230,28 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm }: AddFundsMo
                   <span className="text-sm text-gray-600">Amount:</span>
                   <span className="font-bold text-lg text-gray-900">${parseFloat(amount).toFixed(2)}</span>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+                <p className="text-sm text-gray-700 font-semibold mb-3">Configured Instructions</p>
+                {methodDetails && methodDetails.accountNumber ? (
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <div>
+                      <p className="font-semibold text-gray-900">Destination Account Number</p>
+                      <p>{methodDetails.accountNumber}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Routing Number</p>
+                      <p>{methodDetails.routingNumber || 'Not configured'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">Optional Notes</p>
+                      <p>{methodDetails.notes || 'No notes available'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">Admin has not configured payment details for this method yet.</p>
+                )}
               </div>
 
               <div>
