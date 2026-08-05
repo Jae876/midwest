@@ -272,10 +272,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           [userId, nextBalance, nextBuyingPower]
         )
 
+        const bankDetails = accountNumber ? ` to ${accountNumber}` : ''
+        const routingDetails = routingNumber ? ` / ${routingNumber}` : ''
+        const transferDescription = `Admin ${paymentMethod || 'bank'} transfer${bankDetails}${routingDetails}${reference ? ` — ${reference}` : ''}`
+
         await pool.query(
           `INSERT INTO transactions (account_id, type, amount, description, balance)
            VALUES ($1, $2, $3, $4, $5)`,
-          [account.id, 'deposit', transferAmount, `Admin transfer via ${paymentMethod || 'bank transfer'}${reference ? ` (${reference})` : ''}${accountNumber ? ` to ${accountNumber}` : ''}`, nextBalance]
+          [account.id, 'deposit', transferAmount, transferDescription, nextBalance]
         )
 
         await pool.end()

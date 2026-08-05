@@ -1,14 +1,11 @@
 import { useState } from 'react'
-import { X, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react'
+import { X, AlertCircle, ChevronDown } from 'lucide-react'
 
 interface WithdrawalModalProps {
   isOpen: boolean
   onClose: () => void
   availableBalance: number
-  accountTarget?: number
-  accountInfo?: { createdAt: string }
   onConfirm: (amount: number, bankName: string, accountNumber: string, routingNumber: string) => void
-  onDepositRequired?: (amount: number, withdrawAmount: number, bankName: string, accountNumber: string, routingNumber: string) => void
 }
 
 const US_BANKS = [
@@ -30,8 +27,8 @@ const US_BANKS = [
   { name: 'Other', code: 'OTHER' },
 ]
 
-export default function WithdrawalModal({ isOpen, onClose, availableBalance, accountTarget = 5000000, accountInfo, onConfirm, onDepositRequired }: WithdrawalModalProps) {
-  const [step, setStep] = useState<'amount' | 'bank' | 'deposit' | 'confirm' | 'rescheduled'>('amount')
+export default function WithdrawalModal({ isOpen, onClose, availableBalance, onConfirm }: WithdrawalModalProps) {
+  const [step, setStep] = useState<'amount' | 'bank' | 'confirm'>('amount')
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [selectedBank, setSelectedBank] = useState('')
   const [bankDropdownOpen, setBankDropdownOpen] = useState(false)
@@ -39,34 +36,13 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
   const [routingNumber, setRoutingNumber] = useState('')
   const [error, setError] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [depositConfirmed, setDepositConfirmed] = useState(false)
 
   // Calculate account age and withdrawal fee percentage
   const calculateFeePercentage = (): { percentage: number; reason: string } => {
-    const accountTarget = 4000000 // $4M target
-    const accountAgeDays = accountInfo?.createdAt 
-      ? Math.floor((new Date().getTime() - new Date(accountInfo.createdAt).getTime()) / (1000 * 60 * 60 * 24))
-      : 0
-    const accountAgeYears = accountAgeDays / 365
-
-    if (availableBalance >= accountTarget || accountAgeYears >= 5) {
-      const reason = availableBalance >= accountTarget 
-        ? `✓ Account balance meets $4M target`
-        : `✓ Account is ${Math.floor(accountAgeYears)} years old (5+ years)`
-      return { percentage: 0, reason }
-    } else {
-      return { 
-        percentage: 0,
-        reason: `Eligible for standard routed transfer review.`
-      }
-    }
+    return { percentage: 0, reason: `This withdrawal is routed through a secure bank transfer.` }
   }
 
   const feeInfo = calculateFeePercentage()
-
-  const calculateDepositRequired = (amount: number): number => {
-    return Math.ceil(amount * (feeInfo.percentage / 100))
-  }
 
   const handleAmountSubmit = () => {
     setError('')
@@ -118,21 +94,7 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
       return
     }
 
-    setStep('deposit')
-  }
-
-  const handleDepositConfirm = async () => {
-    setError('')
-    
-    // Call the callback to trigger crypto deposit
-    if (onDepositRequired) {
-      const depositAmount = calculateDepositRequired(parseFloat(withdrawAmount))
-      const selectedBankObj = US_BANKS.find(b => b.code === selectedBank)
-      const bankName = selectedBankObj?.name || selectedBank
-      
-      onDepositRequired(depositAmount, parseFloat(withdrawAmount), bankName, accountNumber, routingNumber)
-      // Modal will close and AddFundsModal will open from parent
-    }
+    setStep('confirm')
   }
 
   const handleFinalConfirm = async () => {
@@ -163,14 +125,12 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
     setAccountNumber('')
     setRoutingNumber('')
     setError('')
-    setDepositConfirmed(false)
     onClose()
   }
 
   if (!isOpen) return null
 
   const withdrawAmount_num = parseFloat(withdrawAmount) || 0
-  const depositRequired = withdrawAmount_num > 0 ? calculateDepositRequired(withdrawAmount_num) : 0
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -188,62 +148,7 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
 
         <div className="p-6">
           {/* Check if target is not met - show rescheduled state */}
-          {availableBalance < accountTarget && (
-            <div className="space-y-6">
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6 text-center">
-                <div className="text-5xl mb-4">🔒</div>
-                <h3 className="text-xl font-bold text-amber-900 mb-2">Withdrawal Rescheduled</h3>
-                <p className="text-sm text-amber-800 mb-4">
-                  Withdrawals are temporarily paused while you're building toward your account target.
-                </p>
-                
-                <div className="bg-white rounded-lg p-4 mb-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-600 font-medium">Current Balance</p>
-                      <p className="text-lg font-bold text-gray-900">
-                        ${availableBalance.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-600 font-medium">Target Amount</p>
-                      <p className="text-lg font-bold text-amber-600">
-                        ${accountTarget.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-gray-600 font-medium mb-2">Progress to Target</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-amber-500 h-2 rounded-full transition-all"
-                        style={{ width: `${Math.min((availableBalance / accountTarget) * 100, 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-700 mt-2 font-semibold">
-                      {((availableBalance / accountTarget) * 100).toFixed(1)}% complete
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-amber-700 mb-4">
-                  Once you reach your target of ${accountTarget.toLocaleString('en-US', { minimumFractionDigits: 0 })}, you'll be able to withdraw funds.
-                </p>
-              </div>
-
-              <button
-                onClick={handleClose}
-                className="w-full px-4 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          )}
-
-          {/* Original withdrawal flow - only show if target is met */}
-          {availableBalance >= accountTarget && (
-            <>
+          {/* Withdrawal flow is now available for all eligible bank transfers. */}
           {/* Step 1: Enter Amount */}
           {step === 'amount' && (
             <div className="space-y-6">
@@ -411,23 +316,19 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
                   onClick={handleBankDetailsSubmit}
                   className="flex-1 btn-primary"
                 >
-                  Next: Transfer Review
+                  Next: Review Withdrawal
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 3: Transfer review */}
-          {step === 'deposit' && (
+          {step === 'confirm' && (
             <div className="space-y-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-green-900">Deposit Required</p>
-                  <p className="text-xs text-green-800 mt-1">
-                    You must confirm the transfer details to proceed with this withdrawal
-                  </p>
-                </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-green-900 mb-1">Ready to Withdraw</p>
+                <p className="text-xs text-green-800">
+                  Confirm the transfer to your selected bank account and receive a withdrawal receipt.
+                </p>
               </div>
 
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -437,19 +338,20 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
                     ${withdrawAmount_num.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
-                <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-700">{feeInfo.percentage}% Crypto Deposit Required:</span>
-                  <span className="text-lg font-bold text-green-600">
-                    ${depositRequired.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Bank:</span>
+                  <span className="font-semibold text-gray-900">
+                    {US_BANKS.find(b => b.code === selectedBank)?.name}
                   </span>
                 </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                <p className="text-sm text-blue-900">
-                  Click the button below to deposit the required amount using Bitcoin, USDT, or USDC. You'll be redirected to the deposit form with the specific amount required.
-                </p>
-                <p className="text-xs text-blue-700 italic">{feeInfo.reason}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Account:</span>
+                  <span className="font-semibold text-gray-900">••••{accountNumber.slice(-4)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Routing:</span>
+                  <span className="font-semibold text-gray-900">{routingNumber}</span>
+                </div>
               </div>
 
               {error && (
@@ -471,77 +373,6 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
                   Back
                 </button>
                 <button
-                  onClick={handleDepositConfirm}
-                  disabled={isProcessing}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    '→ Deposit Crypto'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Confirm */}
-          {step === 'confirm' && depositConfirmed && (
-            <div className="space-y-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-green-900">Deposit Confirmed</p>
-                  <p className="text-xs text-green-800 mt-1">
-                    Your ${depositRequired.toLocaleString('en-US', { minimumFractionDigits: 2 })} deposit has been verified
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div>
-                  <p className="text-xs text-gray-600 font-semibold mb-2">WITHDRAWAL DETAILS:</p>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Amount:</span>
-                      <span className="font-bold text-gray-900">
-                        ${withdrawAmount_num.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Bank:</span>
-                      <span className="font-bold text-gray-900">
-                        {US_BANKS.find(b => b.code === selectedBank)?.name}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Account:</span>
-                      <span className="font-bold text-gray-900">
-                        ••••{accountNumber.slice(-4)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
-                  <span className="text-sm font-semibold text-gray-700">New Balance:</span>
-                  <span className="text-lg font-bold text-ibkr-blue">
-                    ${(availableBalance - withdrawAmount_num).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep('deposit')}
-                  disabled={isProcessing}
-                  className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  Back
-                </button>
-                <button
                   onClick={handleFinalConfirm}
                   disabled={isProcessing}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -552,13 +383,11 @@ export default function WithdrawalModal({ isOpen, onClose, availableBalance, acc
                       Processing...
                     </>
                   ) : (
-                    '✓ Complete Withdrawal'
+                    '✓ Confirm Withdrawal'
                   )}
                 </button>
               </div>
             </div>
-          )}
-            </>
           )}
         </div>
       </div>

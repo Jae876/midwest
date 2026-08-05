@@ -234,8 +234,9 @@ export default function AdminPage() {
     userId: 0,
     amount: '0',
     paymentMethod: 'ACH',
-    reference: '',
-    accountNumber: ''
+    accountNumber: '',
+    routingNumber: '',
+    notes: ''
   })
 
   const handleTransferUser = (user: User) => {
@@ -243,8 +244,9 @@ export default function AdminPage() {
       userId: user.id,
       amount: '0',
       paymentMethod: 'ACH',
-      reference: '',
-      accountNumber: ''
+      accountNumber: '',
+      routingNumber: '',
+      notes: ''
     })
     setShowTransferModal(true)
   }
@@ -263,8 +265,9 @@ export default function AdminPage() {
           operation: 'admin_transfer',
           amount: Number(transferForm.amount || 0),
           paymentMethod: transferForm.paymentMethod,
-          reference: transferForm.reference,
-          accountNumber: transferForm.accountNumber
+          accountNumber: transferForm.accountNumber,
+          routingNumber: transferForm.routingNumber,
+          reference: transferForm.notes
         })
       })
 
@@ -597,21 +600,32 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Reference / Notes</label>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Destination Account Number</label>
                   <input
                     type="text"
-                    value={transferForm.reference}
-                    onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })}
+                    value={transferForm.accountNumber}
+                    onChange={(e) => setTransferForm({ ...transferForm, accountNumber: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Linked Account Number</label>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Routing Number</label>
                   <input
                     type="text"
-                    value={transferForm.accountNumber}
-                    onChange={(e) => setTransferForm({ ...transferForm, accountNumber: e.target.value })}
+                    value={transferForm.routingNumber}
+                    onChange={(e) => setTransferForm({ ...transferForm, routingNumber: e.target.value.replace(/\D/g, '') })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
+                    maxLength={9}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Optional Notes</label>
+                  <input
+                    type="text"
+                    value={transferForm.notes}
+                    onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-emerald-500 outline-none"
                   />
                 </div>

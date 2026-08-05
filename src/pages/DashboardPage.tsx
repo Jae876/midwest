@@ -55,12 +55,12 @@ export default function DashboardPage() {
   const [isPlaceTradeOpen, setIsPlaceTradeOpen] = useState(false)
   const [isAdvancedChartsOpen, setIsAdvancedChartsOpen] = useState(false)
   const [isAlertsOpen, setIsAlertsOpen] = useState(false)
-  const [pendingWithdrawal, setPendingWithdrawal] = useState<{
-    withdrawAmount: number
-    depositAmount: number
+  const [withdrawalReceipt, setWithdrawalReceipt] = useState<{
+    amount: number
     bankName: string
     accountNumber: string
     routingNumber: string
+    message?: string
   } | null>(null)
 
   useEffect(() => {
@@ -96,19 +96,6 @@ export default function DashboardPage() {
     }
   }
 
-  const handleWithdrawalDepositRequired = (depositAmount: number, withdrawAmount: number, bankName: string, accountNumber: string, routingNumber: string) => {
-    setPendingWithdrawal({
-      withdrawAmount,
-      depositAmount,
-      bankName,
-      accountNumber,
-      routingNumber
-    })
-
-    setIsWithdrawalOpen(false)
-    setIsAddFundsOpen(true)
-  }
-
   const handleAddFunds = async (amount: number, paymentMethod: string, reference: string) => {
     try {
       const userStr = localStorage.getItem('user')
@@ -118,9 +105,7 @@ export default function DashboardPage() {
       if (!userData.account) return
 
       const newBalance = userData.account.balance + amount
-      const description = pendingWithdrawal
-        ? `Transfer settlement received via ${paymentMethod} — ref ${reference}`
-        : `Bank transfer deposit via ${paymentMethod} — ref ${reference}`
+      const description = `Bank transfer deposit via ${paymentMethod} — ref ${reference}`
 
       const newTransaction: Transaction = {
         date: new Date().toISOString().split('T')[0],
@@ -135,22 +120,6 @@ export default function DashboardPage() {
 
       if (!userData.account.transactions) userData.account.transactions = []
       userData.account.transactions.push(newTransaction)
-
-      if (pendingWithdrawal && amount >= pendingWithdrawal.depositAmount * 0.95) {
-        const finalBalance = newBalance - pendingWithdrawal.withdrawAmount
-
-        const withdrawalTxn: Transaction = {
-          date: new Date().toISOString().split('T')[0],
-          type: 'withdrawal',
-          amount: -pendingWithdrawal.withdrawAmount,
-          description: `Withdrawal to ${pendingWithdrawal.bankName} (••••${pendingWithdrawal.accountNumber.slice(-4)}) - bank transfer completed`,
-          balance: finalBalance
-        }
-
-        userData.account.balance = finalBalance
-        userData.account.transactions.push(withdrawalTxn)
-        setPendingWithdrawal(null)
-      }
 
       // Persist to server-side DB
       try {
@@ -174,7 +143,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleWithdrawalConfirm = async (amount: number, bankName: string, accountNumber: string, _routingNumber: string) => {
+  const handleWithdrawalConfirm = async (amount: number, bankName: string, accountNumber: string, routingNumber: string) => {
     try {
       const userStr = localStorage.getItem('user')
       if (!userStr) return
@@ -182,40 +151,43 @@ export default function DashboardPage() {
       const userData: User = JSON.parse(userStr)
       if (!userData.account) return
 
-      const newBalance = userData.account.balance - amount
+      const token = localStorage.getItem('token') || ''
+      const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ operation: 'withdrawal', amount, bankName, accountNumber, routingNumber })
+      })
 
+      const data = await resp.json().catch(() => ({}))
+      if (!resp.ok) {
+        console.warn('Server withdrawal failed:', data)
+      }
+
+      const newBalance = userData.account.balance - amount
       const newTransaction: Transaction = {
         date: new Date().toISOString().split('T')[0],
         type: 'withdrawal',
         amount: -amount,
-        description: `Withdrawal to ${bankName} (••••${accountNumber.slice(-4)}) - bank transfer initiated`,
+        description: `Withdrawal to ${bankName} (••••${accountNumber.slice(-4)}) - routing ${routingNumber}`,
         balance: newBalance
       }
 
       userData.account.balance = newBalance
       if (!userData.account.transactions) userData.account.transactions = []
       userData.account.transactions.push(newTransaction)
-
-      // Persist withdrawal to server
-      try {
-        const token = localStorage.getItem('token') || ''
-        const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ operation: 'withdrawal', amount, bankName, accountNumber })
-        })
-
-        const data = await resp.json().catch(() => ({}))
-        if (!resp.ok) console.warn('Server withdrawal failed:', data)
-      } catch (err) {
-        console.warn('Server withdrawal request failed', err)
-      }
-
       localStorage.setItem('user', JSON.stringify(userData))
       loadUserData()
+
+      setWithdrawalReceipt({
+        amount,
+        bankName,
+        accountNumber,
+        routingNumber,
+        message: data.receipt?.reference || 'Withdrawal processed successfully.'
+      })
     } catch (err) {
       console.error('Error processing withdrawal:', err)
     }
@@ -347,7 +319,10 @@ export default function DashboardPage() {
             </div>
           </button>
 
-          <button onClick={() => setIsWithdrawalOpen(true)} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
+          <button onClick={() => {
+          setWithdrawalReceipt(null)
+          setIsWithdrawalOpen(true)
+        }} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                 <Send className="w-6 h-6 text-red-600" />
@@ -438,25 +413,37 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {withdrawalReceipt && (
+        <div className="mb-6 rounded-2xl bg-emerald-50 border border-emerald-200 p-6 text-sm text-emerald-900">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-semibold text-emerald-900">Withdrawal receipt</p>
+              <p className="mt-3">Amount: ${withdrawalReceipt.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+              <p>Bank: {withdrawalReceipt.bankName}</p>
+              <p>Account: ••••{withdrawalReceipt.accountNumber.slice(-4)}</p>
+              <p>Routing: {withdrawalReceipt.routingNumber}</p>
+              {withdrawalReceipt.message && <p className="mt-3 text-emerald-800">{withdrawalReceipt.message}</p>}
+            </div>
+            <button
+              onClick={() => setWithdrawalReceipt(null)}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 transition"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <WithdrawalModal
         isOpen={isWithdrawalOpen}
-        onClose={() => {
-          setIsWithdrawalOpen(false)
-          setPendingWithdrawal(null)
-        }}
+        onClose={() => setIsWithdrawalOpen(false)}
         availableBalance={accountValue}
-        accountTarget={accountTarget}
-        accountInfo={{ createdAt: user?.account?.createdAt || '2015-01-15' }}
         onConfirm={handleWithdrawalConfirm}
-        onDepositRequired={handleWithdrawalDepositRequired}
       />
 
       <AddFundsModal
         isOpen={isAddFundsOpen}
-        onClose={() => {
-          setIsAddFundsOpen(false)
-          if (!pendingWithdrawal) setPendingWithdrawal(null)
-        }}
+        onClose={() => setIsAddFundsOpen(false)}
         onConfirm={handleAddFunds}
       />
 
