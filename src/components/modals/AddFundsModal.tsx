@@ -156,9 +156,9 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm, paymentDetai
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
-                <p className="text-sm text-gray-700 font-semibold mb-3">Payment Instructions</p>
-                {methodDetails && methodDetails.accountNumber ? (
+              {methodDetails?.accountNumber ? (
+                <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+                  <p className="text-sm text-gray-700 font-semibold mb-3">Payment Instructions</p>
                   <div className="space-y-2 text-sm text-gray-700">
                     <div>
                       <p className="font-semibold text-gray-900">Destination Account Number</p>
@@ -173,10 +173,8 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm, paymentDetai
                       <p>{methodDetails.notes || 'No notes available'}</p>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-600">Admin has not configured payment details for this method yet.</p>
-                )}
-              </div>
+                </div>
+              ) : null}
 
               <div>
                 <label htmlFor="amount" className="block text-sm font-semibold text-gray-900 mb-2">
@@ -232,9 +230,9 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm, paymentDetai
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
-                <p className="text-sm text-gray-700 font-semibold mb-3">Configured Instructions</p>
-                {methodDetails && methodDetails.accountNumber ? (
+              {methodDetails?.accountNumber ? (
+                <div className="rounded-2xl border border-gray-200 bg-slate-50 p-4">
+                  <p className="text-sm text-gray-700 font-semibold mb-3">Payment Instructions</p>
                   <div className="space-y-2 text-sm text-gray-700">
                     <div>
                       <p className="font-semibold text-gray-900">Destination Account Number</p>
@@ -249,14 +247,12 @@ export default function AddFundsModal({ isOpen, onClose, onConfirm, paymentDetai
                       <p>{methodDetails.notes || 'No notes available'}</p>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-600">Admin has not configured payment details for this method yet.</p>
-                )}
-              </div>
+                </div>
+              ) : null}
 
               <div>
                 <label htmlFor="reference" className="block text-sm font-semibold text-gray-900 mb-2">
-                  Transfer Reference / Remittance ID
+                  Transfer Reference / Remittance ID (required)
                 </label>
                 <input
                   id="reference"
