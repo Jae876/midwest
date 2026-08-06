@@ -444,23 +444,28 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6 mb-12">
-          <button
-            type="button"
-            onClick={() => setShowCardDetails((prev) => !prev)}
-            className="group rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5 text-left hover:shadow-2xl transition-all duration-300"
-            aria-expanded={showCardDetails}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Digital Visa Debit</p>
-                <h2 className="mt-4 text-3xl font-bold tracking-tight">Your Bank Card</h2>
-              </div>
-              <div className="text-right text-xs text-slate-500">{showCardDetails ? 'Details visible' : 'Tap to reveal'}</div>
-            </div>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowCardDetails((prev) => !prev)}
+              className="inline-flex items-center justify-between w-full max-w-xs rounded-full bg-[var(--mh-primary)]/10 px-5 py-3 text-sm font-semibold text-[var(--mh-primary)] transition hover:bg-[var(--mh-primary)]/15"
+              aria-expanded={showCardDetails}
+            >
+              <span>Card</span>
+              <span className="text-xs text-[var(--mh-primary)]/70">{showCardDetails ? 'Hide' : 'View'}</span>
+            </button>
 
-            <div className="mt-8">
-              {showCardDetails ? (
-                <div className="space-y-6">
+            {showCardDetails && (
+              <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5 text-left">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Digital Visa Debit</p>
+                    <h2 className="mt-4 text-3xl font-bold tracking-tight">Your Bank Card</h2>
+                  </div>
+                  <div className="text-right text-xs text-slate-500">Details visible</div>
+                </div>
+
+                <div className="mt-8 space-y-6">
                   <div className="text-lg tracking-[0.22em] font-semibold">{cardDetails.cardNumber}</div>
                   <div className="grid grid-cols-2 gap-4 text-sm text-slate-300">
                     <div>
@@ -479,22 +484,13 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="rounded-3xl bg-white/5 p-6 text-slate-300">
-                  <p className="text-2xl tracking-[0.22em] font-semibold">•••• •••• •••• ••••</p>
-                  <p className="mt-3 text-sm text-slate-400">Tap to reveal your virtual debit card details.</p>
-                </div>
-              )}
-            </div>
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300 transition-opacity duration-300">
-              {showCardDetails ? (
-                <p>Tap again to hide sensitive card details.</p>
-              ) : (
-                <p>Tap this card to show your full debit card information.</p>
-              )}
-            </div>
-          </button>
+                <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  <p>Tap the card button again to collapse the view.</p>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 gap-6">
             <button onClick={() => setIsAddFundsOpen(true)} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
