@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -38,53 +38,6 @@ export default function LoginPage() {
 
     try {
       setLoading(true)
-
-      // Handle demo credentials
-      if (formData.email === 'demo@example.com' && formData.password === 'Demo123!@') {
-        const transactions = [
-          { date: '2026-01-02', type: 'deposit', amount: 10000, description: 'Direct Deposit', balance: 105000 },
-          { date: '2026-01-06', type: 'deposit', amount: 2500, description: 'Savings Transfer', balance: 107500 },
-          { date: '2026-01-12', type: 'withdrawal', amount: -1200, description: 'ATM Withdrawal', balance: 106300 },
-          { date: '2026-01-17', type: 'interest', amount: 180, description: 'Interest Posted', balance: 106480 },
-          { date: '2026-01-24', type: 'payment', amount: -850, description: 'Mortgage Payment', balance: 105630 },
-          { date: '2026-01-29', type: 'deposit', amount: 4200, description: 'Mobile Deposit', balance: 109830 }
-        ]
-
-        const demoUser = {
-          id: 'demo-user-001',
-          email: 'demo@example.com',
-          firstName: 'Midwest',
-          lastName: 'Member',
-          accountType: 'individual',
-          account: {
-            id: 'demo-account-001',
-            accountNumber: 'U123456789',
-            createdAt: '2015-01-15',
-            balance: 109830,
-            buyingPower: 96500,
-            totalDeposits: 102450,
-            unrealizedGains: 1240,
-            positions: [
-              { symbol: 'CHK', quantity: 1, avgCost: 0, currentPrice: 0, unrealizedPL: 0, unrealizedPLPercent: 0 },
-              { symbol: 'SAV', quantity: 1, avgCost: 0, currentPrice: 0, unrealizedPL: 0, unrealizedPLPercent: 0 },
-              { symbol: 'MRT', quantity: 1, avgCost: 0, currentPrice: 0, unrealizedPL: 0, unrealizedPLPercent: 0 }
-            ],
-            transactions
-          }
-        }
-
-        localStorage.setItem('token', 'demo-token-' + Date.now())
-        localStorage.setItem('user', JSON.stringify(demoUser))
-        localStorage.setItem('isDemo', 'true')
-
-        if (formData.rememberMe) {
-          localStorage.setItem('rememberMe', 'true')
-          localStorage.setItem('email', formData.email)
-        }
-
-        navigate('/dashboard')
-        return
-      }
 
       // API call to login for regular users
       const response = await fetch(`/api/auth/login`, {
@@ -246,27 +199,6 @@ export default function LoginPage() {
             </p>
           </form>
 
-          {/* Demo Banner */}
-          <div className="mt-8 pt-8 border-t-2 border-[var(--mh-primary)]/10">
-            <div className="bg-[var(--mh-accent-soft)] p-4 rounded-lg border border-[var(--mh-primary)]/10">
-              <p className="text-sm font-semibold text-[var(--mh-primary)] mb-3 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-[var(--mh-primary)]" />
-                Try the Demo Account
-              </p>
-              <p className="text-xs text-[var(--mh-ink)]/70 mb-3">
-                Explore the banking dashboard with ready-made account data, savings activity, and secure account actions.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData({ email: 'demo@example.com', password: 'Demo123!@', rememberMe: false })
-                }}
-                className="w-full px-4 py-2 bg-[var(--mh-primary)] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition-colors"
-              >
-                Load Demo Credentials
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Footer Text */}

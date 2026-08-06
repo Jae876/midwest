@@ -41,6 +41,8 @@ import('pg').then(({ Pool }) => {
       margin_level DECIMAL(5, 2) DEFAULT 2.0,
       total_deposits DECIMAL(15, 2) DEFAULT 0,
       unrealized_gains DECIMAL(15, 2) DEFAULT 0,
+      account_number VARCHAR(20) DEFAULT '',
+      routing_number VARCHAR(9) DEFAULT '',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );

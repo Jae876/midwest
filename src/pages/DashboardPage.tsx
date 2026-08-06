@@ -7,6 +7,27 @@ import PlaceTradeModal from '@components/modals/PlaceTradeModal'
 import AdvancedChartsModal from '@components/modals/AdvancedChartsModal'
 import AlertsModal from '@components/modals/AlertsModal'
 
+function formatCardNumber(accountNumber = '') {
+  const digits = accountNumber.replace(/\D/g, '').padEnd(12, '0').slice(0, 12)
+  const card = `4532${digits}`.slice(0, 16)
+  return card.replace(/(.{4})/g, '$1 ').trim()
+}
+
+function generateCardExpiry(createdAt?: string) {
+  const issued = new Date(createdAt || Date.now())
+  if (Number.isNaN(issued.getTime())) {
+    issued.setTime(Date.now())
+  }
+  const month = String(issued.getMonth() + 1).padStart(2, '0')
+  const year = String(issued.getFullYear() + 4).slice(-2)
+  return `${month}/${year}`
+}
+
+function generateCardCVV(accountNumber = '') {
+  const digits = accountNumber.replace(/\D/g, '')
+  return digits.slice(-3).padStart(3, '0')
+}
+
 interface Position {
   symbol: string
   quantity: number
@@ -42,7 +63,16 @@ interface User {
     target?: number
     positions: Position[]
     transactions?: Transaction[]
+    accountNumber?: string
+    routingNumber?: string
   }
+}
+
+interface CardDetails {
+  cardNumber: string
+  expiry: string
+  cvv: string
+  cardHolder: string
 }
 
 export default function DashboardPage() {
@@ -72,6 +102,12 @@ export default function DashboardPage() {
     ACH: { accountNumber: '', routingNumber: '', notes: '' },
     WIRE: { accountNumber: '', routingNumber: '', notes: '' },
     INTERNAL: { accountNumber: '', routingNumber: '', notes: '' }
+  })
+  const [cardDetails, setCardDetails] = useState<CardDetails>({
+    cardNumber: '4532 0000 0000 0000',
+    expiry: '12/30',
+    cvv: '000',
+    cardHolder: 'Cardholder Name'
   })
 
   useEffect(() => {
@@ -133,6 +169,13 @@ export default function DashboardPage() {
         setTotalDeposits(userData.account.totalDeposits || 0)
         setUnrealizedGains(userData.account.unrealizedGains || 0)
         setAccountTarget(userData.account.target || 5000000)
+
+        setCardDetails({
+          cardNumber: formatCardNumber(userData.account.accountNumber),
+          expiry: generateCardExpiry(userData.account.createdAt),
+          cvv: generateCardCVV(userData.account.accountNumber),
+          cardHolder: `${userData.firstName} ${userData.lastName}`
+        })
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
@@ -350,33 +393,74 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <button onClick={() => setIsAddFundsOpen(true)} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <Plus className="w-6 h-6 text-emerald-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6 mb-12">
+          <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Digital Visa Debit</p>
+                <h2 className="mt-4 text-3xl font-bold tracking-tight">Your Bank Card</h2>
               </div>
-              <div className="text-left">
-                <h3 className="font-bold text-[var(--mh-primary)]">Add Funds</h3>
-                <p className="text-xs text-[var(--mh-ink)]/60">Transfer in money from your linked account</p>
-              </div>
+              <div className="text-right text-xs text-slate-500">Verified Member</div>
             </div>
-          </button>
 
-          <button onClick={() => {
-          setWithdrawalReceipt(null)
-          setIsWithdrawalOpen(true)
-        }} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <Send className="w-6 h-6 text-red-600" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-bold text-[var(--mh-primary)]">Withdraw</h3>
-                <p className="text-xs text-[var(--mh-ink)]/60">Move funds securely to a bank account</p>
+            <div className="mt-8 space-y-6">
+              <div className="text-lg tracking-[0.22em] font-semibold">{cardDetails.cardNumber}</div>
+              <div className="grid grid-cols-2 gap-4 text-sm text-slate-300">
+                <div>
+                  <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Card Holder</p>
+                  <p className="mt-2 font-medium text-white">{cardDetails.cardHolder}</p>
+                </div>
+                <div>
+                  <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Expires</p>
+                  <p className="mt-2 font-medium text-white">{cardDetails.expiry}</p>
+                </div>
               </div>
             </div>
-          </button>
+
+            <div className="mt-10 grid grid-cols-3 gap-4 text-sm text-slate-300">
+              <div className="rounded-2xl bg-white/5 p-4">
+                <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Account</p>
+                <p className="mt-2 font-semibold text-white">••••{user?.account?.accountNumber?.slice(-4) || '0000'}</p>
+              </div>
+              <div className="rounded-2xl bg-white/5 p-4">
+                <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Routing</p>
+                <p className="mt-2 font-semibold text-white">{user?.account?.routingNumber || '000000000'}</p>
+              </div>
+              <div className="rounded-2xl bg-white/5 p-4">
+                <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">CVV</p>
+                <p className="mt-2 font-semibold text-white">{cardDetails.cvv}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <button onClick={() => setIsAddFundsOpen(true)} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-[var(--mh-primary)]">Add Funds</h3>
+                  <p className="text-xs text-[var(--mh-ink)]/60">Transfer in money from your linked account</p>
+                </div>
+              </div>
+            </button>
+
+            <button onClick={() => {
+              setWithdrawalReceipt(null)
+              setIsWithdrawalOpen(true)
+            }} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Send className="w-6 h-6 text-red-600" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-[var(--mh-primary)]">Withdraw</h3>
+                  <p className="text-xs text-[var(--mh-ink)]/60">Move funds securely to a bank account</p>
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">

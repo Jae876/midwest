@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import bcrypt from 'bcryptjs'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
 
 function verifyToken(token: string): { userId: number; email: string } | null {
   try {
@@ -109,6 +110,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         total_deposits DECIMAL(15, 2) DEFAULT 50000,
         unrealized_gains DECIMAL(15, 2) DEFAULT 0,
         margin_level DECIMAL(5, 2) DEFAULT 30,
+        account_number VARCHAR(20) DEFAULT '',
+        routing_number VARCHAR(9) DEFAULT '',
         account_type VARCHAR(50) DEFAULT 'individual',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -119,6 +122,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ADD COLUMN IF NOT EXISTS total_deposits DECIMAL(15, 2) DEFAULT 50000,
       ADD COLUMN IF NOT EXISTS unrealized_gains DECIMAL(15, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS margin_level DECIMAL(5, 2) DEFAULT 30,
+      ADD COLUMN IF NOT EXISTS account_number VARCHAR(20) DEFAULT '',
+      ADD COLUMN IF NOT EXISTS routing_number VARCHAR(9) DEFAULT '',
       ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'individual'
     `)
 
@@ -156,20 +161,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           u.last_name,
           u.account_type,
           u.created_at,
+          a.id AS account_id,
           a.balance,
           a.buying_power,
+          a.account_number,
+          a.routing_number,
           COUNT(DISTINCT t.id) as transaction_count
         FROM users u
         LEFT JOIN accounts a ON u.id = a.user_id
         LEFT JOIN transactions t ON a.id = t.account_id
-        GROUP BY u.id, u.email, u.first_name, u.last_name, u.account_type, u.created_at, a.id, a.balance, a.buying_power
+        GROUP BY u.id, u.email, u.first_name, u.last_name, u.account_type, u.created_at, a.id, a.balance, a.buying_power, a.account_number, a.routing_number
         ORDER BY u.created_at DESC
       `)
 
-      await pool.end()
+      const users = await Promise.all(result.rows.map(async (u) => {
+        let accountNumber = u.account_number
+        let routingNumber = u.routing_number
 
-      return res.status(200).json({
-        users: result.rows.map((u) => ({
+        if ((!accountNumber || !routingNumber) && u.account_id) {
+          accountNumber = accountNumber || generateAccountNumber()
+          routingNumber = routingNumber || generateRoutingNumber()
+          await pool.query(
+            'UPDATE accounts SET account_number = $1, routing_number = $2 WHERE id = $3',
+            [accountNumber, routingNumber, u.account_id]
+          )
+        }
+
+        return {
           id: u.id,
           email: u.email,
           firstName: u.first_name,
@@ -178,9 +196,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           balance: u.balance ? parseFloat(u.balance) : 50000,
           buyingPower: u.buying_power ? parseFloat(u.buying_power) : 50000,
           transactionCount: parseInt(u.transaction_count) || 0,
-          createdAt: u.created_at
-        }))
-      })
+          createdAt: u.created_at,
+          accountNumber: accountNumber || '',
+          routingNumber: routingNumber || ''
+        }
+      }))
+
+      await pool.end()
+
+      return res.status(200).json({ users })
     }
 
     if (req.method === 'POST') {
@@ -197,6 +221,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(409).json({ error: 'User already exists' })
       }
 
+      const accountNumber = generateAccountNumber()
+      const routingNumber = generateRoutingNumber()
       const hashedPassword = await bcrypt.hash(password, 10)
       const userInsert = await pool.query(
         `INSERT INTO users (email, password, first_name, last_name, account_type)
@@ -208,14 +234,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const userId = userInsert.rows[0].id
       const balanceValue = Number(balance) || 50000
 
-      await pool.query(
-        `INSERT INTO accounts (user_id, balance, buying_power, total_deposits, unrealized_gains, margin_level, account_type)
-         VALUES ($1, $2, $2, $2, 0, 30, 'individual')`,
-        [userId, balanceValue]
+      const accountInsert = await pool.query(
+        `INSERT INTO accounts (user_id, balance, buying_power, total_deposits, unrealized_gains, margin_level, account_type, account_number, routing_number)
+         VALUES ($1, $2, $2, $2, 0, 30, 'individual', $3, $4)
+         RETURNING id, account_number, routing_number`,
+        [userId, balanceValue, accountNumber, routingNumber]
       )
 
-      const accountResult = await pool.query('SELECT id FROM accounts WHERE user_id = $1', [userId])
-      const accountId = accountResult.rows[0]?.id
+      const accountId = accountInsert.rows[0]?.id
 
       if (accountId) {
         await pool.query(
@@ -234,13 +260,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           firstName: firstName || '',
           lastName: lastName || '',
           balance: balanceValue,
-          buyingPower: balanceValue
+          buyingPower: balanceValue,
+          accountNumber,
+          routingNumber
         }
       })
     }
 
     if (req.method === 'PUT') {
-      const { userId, firstName, lastName, accountType, balance, operation, amount, paymentMethod, reference, accountNumber } = req.body
+      const { userId, firstName, lastName, accountType, balance, operation, amount, paymentMethod, reference, accountNumber, routingNumber } = req.body
 
       if (!userId) {
         await pool.end()

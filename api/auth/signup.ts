@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
@@ -76,6 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         password VARCHAR(255) NOT NULL,
         first_name VARCHAR(100),
         last_name VARCHAR(100),
+        account_type VARCHAR(50) DEFAULT 'individual',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `)
@@ -89,8 +91,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         buying_power DECIMAL(15, 2),
         total_deposits DECIMAL(15, 2),
         unrealized_gains DECIMAL(15, 2),
+        account_number VARCHAR(20) DEFAULT '',
+        routing_number VARCHAR(9) DEFAULT '',
+        account_type VARCHAR(50) DEFAULT 'individual',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `)
+
+    await pool.query(`
+      ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS account_number VARCHAR(20) DEFAULT '',
+      ADD COLUMN IF NOT EXISTS routing_number VARCHAR(9) DEFAULT '',
+      ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'individual'
     `)
 
     // Check email
@@ -104,17 +116,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const hashedPassword = await hashPassword(password)
 
     // Insert user
+    const accountTypeValue = req.body.accountType || 'individual'
     const userRes = await pool.query(
-      'INSERT INTO users (email, password, first_name, last_name) VALUES ($1, $2, $3, $4) RETURNING id, email, first_name, last_name',
-      [email, hashedPassword, firstName, lastName]
+      'INSERT INTO users (email, password, first_name, last_name, account_type) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name',
+      [email, hashedPassword, firstName, lastName, accountTypeValue]
     )
 
     const user = userRes.rows[0]
 
     // Insert account
+    const accountNumber = generateAccountNumber()
+    const routingNumber = generateRoutingNumber()
+
     const accountRes = await pool.query(
-      'INSERT INTO accounts (user_id, balance, buying_power, total_deposits, unrealized_gains, account_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [user.id, 50000, 25000, 0, 0, 'individual']
+      'INSERT INTO accounts (user_id, balance, buying_power, total_deposits, unrealized_gains, account_type, account_number, routing_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [user.id, 50000, 25000, 0, 0, 'individual', accountNumber, routingNumber]
     )
 
     const account = accountRes.rows[0]
@@ -134,6 +150,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           buyingPower: parseFloat(account.buying_power || 0),
           totalDeposits: parseFloat(account.total_deposits || 0),
           unrealizedGains: parseFloat(account.unrealized_gains || 0),
+          accountNumber: account.account_number,
+          routingNumber: account.routing_number,
           createdAt: account.created_at,
           positions: [],
           transactions: []

@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -78,6 +79,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const account = accountRes.rows[0]
+    let accountNumber = account.account_number
+    let routingNumber = account.routing_number
+
+    if (!accountNumber || !routingNumber) {
+      accountNumber = accountNumber || generateAccountNumber()
+      routingNumber = routingNumber || generateRoutingNumber()
+      await pool.query(
+        'UPDATE accounts SET account_number = $1, routing_number = $2 WHERE id = $3',
+        [accountNumber, routingNumber, account.id]
+      )
+    }
+
     const token = generateToken(user.id, user.email)
 
     await pool.end()
@@ -94,6 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           buyingPower: parseFloat(account.buying_power || 0),
           totalDeposits: parseFloat(account.total_deposits || 0),
           unrealizedGains: parseFloat(account.unrealized_gains || 0),
+          accountNumber: accountNumber || '',
+          routingNumber: routingNumber || '',
           createdAt: account.created_at,
           positions: [],
           transactions: []

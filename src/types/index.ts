@@ -10,6 +10,7 @@ export interface Account {
   id: string
   userId: string
   accountNumber: string
+  routingNumber?: string
   type: string
   balance: number
   buyingPower: number
