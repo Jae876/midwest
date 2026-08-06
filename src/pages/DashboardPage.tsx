@@ -8,9 +8,29 @@ import AdvancedChartsModal from '@components/modals/AdvancedChartsModal'
 import AlertsModal from '@components/modals/AlertsModal'
 
 function formatCardNumber(accountNumber = '') {
-  const digits = accountNumber.replace(/\D/g, '').padEnd(12, '0').slice(0, 12)
-  const card = `4532${digits}`.slice(0, 16)
-  return card.replace(/(.{4})/g, '$1 ').trim()
+  const digits = accountNumber.replace(/\D/g, '')
+  if (!digits) {
+    return 'XXXX XXXX XXXX XXXX'
+  }
+
+  const full = `4532${digits.padEnd(12, '0')}`.slice(0, 16)
+  return full.replace(/(.{4})/g, '$1 ').trim()
+}
+
+function formatAccountNumber(accountNumber = '') {
+  const digits = accountNumber.replace(/\D/g, '')
+  if (!digits) {
+    return 'Pending'
+  }
+  return digits.padStart(10, '0').replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')
+}
+
+function formatRoutingNumber(routingNumber = '') {
+  const digits = routingNumber.replace(/\D/g, '')
+  if (!digits) {
+    return 'Pending'
+  }
+  return digits.padStart(9, '0').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
 }
 
 function generateCardExpiry(createdAt?: string) {
@@ -25,7 +45,10 @@ function generateCardExpiry(createdAt?: string) {
 
 function generateCardCVV(accountNumber = '') {
   const digits = accountNumber.replace(/\D/g, '')
-  return digits.slice(-3).padStart(3, '0')
+  if (digits.length < 3) {
+    return '***'
+  }
+  return digits.slice(-3)
 }
 
 interface Position {
@@ -86,6 +109,7 @@ export default function DashboardPage() {
   const [unrealizedGains, setUnrealizedGains] = useState(0)
   const [accountTarget, setAccountTarget] = useState(5000000)
   const [expandedCard, setExpandedCard] = useState<'accountValue' | 'netGains' | null>(null)
+  const [showCardDetails, setShowCardDetails] = useState(false)
   const [isWithdrawalOpen, setIsWithdrawalOpen] = useState(false)
   const [isAddFundsOpen, setIsAddFundsOpen] = useState(false)
   const [isPlaceTradeOpen, setIsPlaceTradeOpen] = useState(false)
@@ -322,6 +346,20 @@ export default function DashboardPage() {
                 +${dayChange.toLocaleString('en-US', { minimumFractionDigits: 0 })} ({dayChangePercent.toFixed(2)}%)
               </span>
             </div>
+            {showCardDetails && (
+              <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="grid gap-3 text-sm text-slate-700">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Account Number</span>
+                    <span className="tracking-[0.2em]">{formatAccountNumber(user?.account?.accountNumber || '')}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Routing Number</span>
+                    <span className="tracking-[0.2em]">{formatRoutingNumber(user?.account?.routingNumber || '')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
             {expandedCard === 'accountValue' && (
               <div className="mt-6 pt-6 border-t border-[var(--mh-primary)]/10 space-y-4">
                 <div>
@@ -394,13 +432,18 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6 mb-12">
-          <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5">
+          <button
+            type="button"
+            onClick={() => setShowCardDetails((prev) => !prev)}
+            className="group rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5 text-left hover:shadow-2xl transition-all duration-300"
+            aria-expanded={showCardDetails}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Digital Visa Debit</p>
                 <h2 className="mt-4 text-3xl font-bold tracking-tight">Your Bank Card</h2>
               </div>
-              <div className="text-right text-xs text-slate-500">Verified Member</div>
+              <div className="text-right text-xs text-slate-500">{showCardDetails ? 'Details visible' : 'Tap to reveal'}</div>
             </div>
 
             <div className="mt-8 space-y-6">
@@ -420,18 +463,26 @@ export default function DashboardPage() {
             <div className="mt-10 grid grid-cols-3 gap-4 text-sm text-slate-300">
               <div className="rounded-2xl bg-white/5 p-4">
                 <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Account</p>
-                <p className="mt-2 font-semibold text-white">••••{user?.account?.accountNumber?.slice(-4) || '0000'}</p>
+                <p className="mt-2 font-semibold text-white">{user?.account?.accountNumber ? `••••${user.account.accountNumber.slice(-4)}` : 'Pending'}</p>
               </div>
               <div className="rounded-2xl bg-white/5 p-4">
                 <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Routing</p>
-                <p className="mt-2 font-semibold text-white">{user?.account?.routingNumber || '000000000'}</p>
+                <p className="mt-2 font-semibold text-white">{user?.account?.routingNumber ? formatRoutingNumber(user.account.routingNumber) : 'Pending'}</p>
               </div>
               <div className="rounded-2xl bg-white/5 p-4">
                 <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">CVV</p>
                 <p className="mt-2 font-semibold text-white">{cardDetails.cvv}</p>
               </div>
             </div>
-          </div>
+
+            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300 transition-opacity duration-300">
+              {showCardDetails ? (
+                <p>Bank card details are now visible below your available balance.</p>
+              ) : (
+                <p>Tap the card to show your full card, account, and routing details.</p>
+              )}
+            </div>
+          </button>
 
           <div className="grid grid-cols-1 gap-6">
             <button onClick={() => setIsAddFundsOpen(true)} className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 hover:shadow-lg transition-shadow cursor-pointer">
