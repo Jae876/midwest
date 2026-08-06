@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, type FormEvent } from 'react'
 import { Lock, AlertCircle, Eye, EyeOff, Trash2, Edit2, X, Save, LogOut, UserPlus } from 'lucide-react'
+import { generateFallbackAccountNumber, generateFallbackRoutingNumber } from '../utils/helpers'
 
 interface User {
   id: number
@@ -155,7 +156,7 @@ export default function AdminPage() {
         }
       }
 
-      // Map fallback users to same structure as backend
+      // Map fallback users to same structure as backend (dedupe by email later)
       const mappedFallback = fallbackUsers.map((u) => ({
         id: u.id,
         email: u.email,
@@ -170,7 +171,11 @@ export default function AdminPage() {
         routingNumber: u.routingNumber || ''
       }))
 
-      setUsers([...backendUsers, ...mappedFallback])
+      // Deduplicate: prefer backend record when emails match
+      const backendEmails = new Set(backendUsers.map((b) => b.email))
+      const filteredFallback = mappedFallback.filter((f) => !backendEmails.has(f.email))
+
+      setUsers([...backendUsers, ...filteredFallback])
     } catch (err) {
       console.error('Error loading users:', err)
       setUsers([])
@@ -265,16 +270,29 @@ export default function AdminPage() {
         if (stored) {
           try { list = JSON.parse(stored) } catch { list = [] }
         }
+        const initialBalance = Number(createForm.balance || 50000)
+        const fallbackAccountNumber = (createForm as any).accountNumber || generateFallbackAccountNumber()
+        const fallbackRoutingNumber = (createForm as any).routingNumber || generateFallbackRoutingNumber()
+
         const fallbackUser = {
           id: -(Date.now()),
           email: createForm.email,
           firstName: createForm.firstName,
           lastName: createForm.lastName,
           password: createForm.password,
-          balance: Number(createForm.balance || 50000),
+          balance: initialBalance,
           createdAt: new Date().toISOString(),
-          accountNumber: (createForm as any).accountNumber || '',
-          routingNumber: (createForm as any).routingNumber || ''
+          accountNumber: fallbackAccountNumber,
+          routingNumber: fallbackRoutingNumber,
+          transactions: [
+            {
+              date: new Date().toISOString().split('T')[0],
+              type: 'deposit',
+              amount: initialBalance,
+              description: 'Initial account funding',
+              balance: initialBalance
+            }
+          ]
         }
         list.unshift(fallbackUser)
         localStorage.setItem('fallback_users', JSON.stringify(list))
@@ -284,6 +302,17 @@ export default function AdminPage() {
         setError(serverData?.error || serverData?.message || 'Server unavailable; user saved locally as fallback.')
         await loadUsers()
         return
+      }
+
+      // Remove any fallback entry that matches this email
+      try {
+        const stored = localStorage.getItem('fallback_users')
+        if (stored) {
+          const list = JSON.parse(stored).filter((u: any) => u.email !== createForm.email)
+          localStorage.setItem('fallback_users', JSON.stringify(list))
+        }
+      } catch {
+        // ignore
       }
 
       setShowCreateModal(false)
