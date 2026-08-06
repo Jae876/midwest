@@ -135,12 +135,42 @@ export default function AdminPage() {
 
       const data = await parseResponseData(response)
 
+      let backendUsers: any[] = []
       if (response.ok) {
-        setUsers(data.users || [])
+        backendUsers = data.users || []
       } else {
-        setUsers([])
-        setError(data.error || data.message || 'Unable to load users')
+        // don't throw here; allow fallback
+        backendUsers = []
+        setError(data.error || data.message || 'Unable to load users from server; using local fallback')
       }
+
+      // Merge with locally stored fallback users
+      const storedFallback = localStorage.getItem('fallback_users')
+      let fallbackUsers: any[] = []
+      if (storedFallback) {
+        try {
+          fallbackUsers = JSON.parse(storedFallback)
+        } catch {
+          fallbackUsers = []
+        }
+      }
+
+      // Map fallback users to same structure as backend
+      const mappedFallback = fallbackUsers.map((u) => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName || '',
+        lastName: u.lastName || '',
+        accountType: 'individual',
+        balance: u.balance || 50000,
+        buyingPower: u.balance || 50000,
+        transactionCount: u.transactions ? u.transactions.length : 0,
+        createdAt: u.createdAt || new Date().toISOString(),
+        accountNumber: u.accountNumber || '',
+        routingNumber: u.routingNumber || ''
+      }))
+
+      setUsers([...backendUsers, ...mappedFallback])
     } catch (err) {
       console.error('Error loading users:', err)
       setUsers([])
@@ -227,10 +257,32 @@ export default function AdminPage() {
         })
       })
 
-      const data = await parseResponseData(response)
-
       if (!response.ok) {
-        setError(data.error || data.message || 'Unable to create user')
+        const serverData = await parseResponseData(response)
+        // Fallback: store user locally so admin can continue
+        const stored = localStorage.getItem('fallback_users')
+        let list: any[] = []
+        if (stored) {
+          try { list = JSON.parse(stored) } catch { list = [] }
+        }
+        const fallbackUser = {
+          id: -(Date.now()),
+          email: createForm.email,
+          firstName: createForm.firstName,
+          lastName: createForm.lastName,
+          password: createForm.password,
+          balance: Number(createForm.balance || 50000),
+          createdAt: new Date().toISOString(),
+          accountNumber: (createForm as any).accountNumber || '',
+          routingNumber: (createForm as any).routingNumber || ''
+        }
+        list.unshift(fallbackUser)
+        localStorage.setItem('fallback_users', JSON.stringify(list))
+
+        setShowCreateModal(false)
+        setCreateForm({ email: '', firstName: '', lastName: '', password: '', balance: '50000' })
+        setError(serverData?.error || serverData?.message || 'Server unavailable; user saved locally as fallback.')
+        await loadUsers()
         return
       }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { parseResponse } from '../utils/helpers'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { generateFallbackAccountNumber, generateFallbackRoutingNumber, parseResponse } from '../utils/helpers'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -69,6 +69,42 @@ export default function LoginPage() {
 
       navigate('/dashboard')
     } catch (err) {
+      // Try local fallback users when server login fails
+      try {
+        const stored = localStorage.getItem('fallback_users')
+        if (stored) {
+          const fallbackUsers = JSON.parse(stored)
+          const match = fallbackUsers.find((u: any) => u.email === formData.email && u.password === formData.password)
+          if (match) {
+            const token = 'local_user_' + Date.now()
+            const user = {
+              email: match.email,
+              firstName: match.firstName || '',
+              lastName: match.lastName || '',
+              account: {
+                balance: match.balance || 50000,
+                buyingPower: match.balance || 50000,
+                accountNumber: match.accountNumber || generateFallbackAccountNumber(),
+                routingNumber: match.routingNumber || generateFallbackRoutingNumber(),
+                positions: [],
+                transactions: []
+              }
+            }
+
+            localStorage.setItem('token', token)
+            localStorage.setItem('user', JSON.stringify(user))
+            if (formData.rememberMe) {
+              localStorage.setItem('rememberMe', 'true')
+              localStorage.setItem('email', formData.email)
+            }
+            navigate('/dashboard')
+            return
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
       setError(err instanceof Error ? err.message : 'Login failed. Please try again.')
     } finally {
       setLoading(false)

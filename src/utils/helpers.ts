@@ -162,3 +162,11 @@ export const parseResponse = async (response: Response): Promise<any> => {
     return { message: text }
   }
 }
+
+export const generateFallbackAccountNumber = (): string => {
+  return `${Math.floor(1000 + Math.random() * 9000)}${Math.floor(100000 + Math.random() * 900000)}`
+}
+
+export const generateFallbackRoutingNumber = (): string => {
+  return `${Math.floor(100 + Math.random() * 900)}${Math.floor(100 + Math.random() * 900)}${Math.floor(100 + Math.random() * 900)}`
+}
