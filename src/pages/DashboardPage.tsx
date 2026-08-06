@@ -9,11 +9,8 @@ import AlertsModal from '@components/modals/AlertsModal'
 
 function formatCardNumber(accountNumber = '') {
   const digits = accountNumber.replace(/\D/g, '')
-  if (!digits) {
-    return 'XXXX XXXX XXXX XXXX'
-  }
-
-  const full = `4532${digits.padEnd(12, '0')}`.slice(0, 16)
+  const numberSource = digits.padEnd(12, '0')
+  const full = `4532${numberSource}`.slice(0, 16)
   return full.replace(/(.{4})/g, '$1 ').trim()
 }
 
@@ -31,6 +28,14 @@ function formatRoutingNumber(routingNumber = '') {
     return 'Pending'
   }
   return digits.padStart(9, '0').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
+}
+
+function generateFallbackAccountNumber() {
+  return `${Math.floor(1000 + Math.random() * 9000)}${Math.floor(100000 + Math.random() * 900000)}`
+}
+
+function generateFallbackRoutingNumber() {
+  return `${Math.floor(100 + Math.random() * 900)}${Math.floor(100 + Math.random() * 900)}${Math.floor(100 + Math.random() * 900)}`
 }
 
 function generateCardExpiry(createdAt?: string) {
@@ -186,6 +191,11 @@ export default function DashboardPage() {
         const positionsData = userData.account.positions || []
         setPositions(positionsData)
 
+        const accountNumberValue = userData.account.accountNumber || generateFallbackAccountNumber()
+        const routingNumberValue = userData.account.routingNumber || generateFallbackRoutingNumber()
+        userData.account.accountNumber = accountNumberValue
+        userData.account.routingNumber = routingNumberValue
+
         const totalUnrealizedPL = positionsData.reduce((sum, pos) => sum + pos.unrealizedPL, 0)
         setAccountValue(userData.account.balance)
         setDayChange(totalUnrealizedPL)
@@ -195,11 +205,13 @@ export default function DashboardPage() {
         setAccountTarget(userData.account.target || 5000000)
 
         setCardDetails({
-          cardNumber: formatCardNumber(userData.account.accountNumber),
+          cardNumber: formatCardNumber(accountNumberValue),
           expiry: generateCardExpiry(userData.account.createdAt),
-          cvv: generateCardCVV(userData.account.accountNumber),
+          cvv: generateCardCVV(accountNumberValue),
           cardHolder: `${userData.firstName} ${userData.lastName}`
         })
+
+        localStorage.setItem('user', JSON.stringify(userData))
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
@@ -346,7 +358,7 @@ export default function DashboardPage() {
                 +${dayChange.toLocaleString('en-US', { minimumFractionDigits: 0 })} ({dayChangePercent.toFixed(2)}%)
               </span>
             </div>
-            {showCardDetails && (
+            {expandedCard === 'accountValue' && (
               <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4">
                 <div className="grid gap-3 text-sm text-slate-700">
                   <div className="flex items-center justify-between">
@@ -446,40 +458,40 @@ export default function DashboardPage() {
               <div className="text-right text-xs text-slate-500">{showCardDetails ? 'Details visible' : 'Tap to reveal'}</div>
             </div>
 
-            <div className="mt-8 space-y-6">
-              <div className="text-lg tracking-[0.22em] font-semibold">{cardDetails.cardNumber}</div>
-              <div className="grid grid-cols-2 gap-4 text-sm text-slate-300">
-                <div>
-                  <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Card Holder</p>
-                  <p className="mt-2 font-medium text-white">{cardDetails.cardHolder}</p>
-                </div>
-                <div>
-                  <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Expires</p>
-                  <p className="mt-2 font-medium text-white">{cardDetails.expiry}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-10 grid grid-cols-3 gap-4 text-sm text-slate-300">
-              <div className="rounded-2xl bg-white/5 p-4">
-                <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Account</p>
-                <p className="mt-2 font-semibold text-white">{user?.account?.accountNumber ? `••••${user.account.accountNumber.slice(-4)}` : 'Pending'}</p>
-              </div>
-              <div className="rounded-2xl bg-white/5 p-4">
-                <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Routing</p>
-                <p className="mt-2 font-semibold text-white">{user?.account?.routingNumber ? formatRoutingNumber(user.account.routingNumber) : 'Pending'}</p>
-              </div>
-              <div className="rounded-2xl bg-white/5 p-4">
-                <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">CVV</p>
-                <p className="mt-2 font-semibold text-white">{cardDetails.cvv}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300 transition-opacity duration-300">
+            <div className="mt-8">
               {showCardDetails ? (
-                <p>Bank card details are now visible below your available balance.</p>
+                <div className="space-y-6">
+                  <div className="text-lg tracking-[0.22em] font-semibold">{cardDetails.cardNumber}</div>
+                  <div className="grid grid-cols-2 gap-4 text-sm text-slate-300">
+                    <div>
+                      <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Card Holder</p>
+                      <p className="mt-2 font-medium text-white">{cardDetails.cardHolder}</p>
+                    </div>
+                    <div>
+                      <p className="uppercase text-[0.65rem] tracking-[0.25em] text-slate-500">Expires</p>
+                      <p className="mt-2 font-medium text-white">{cardDetails.expiry}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 p-4 text-sm text-slate-300">
+                    <div className="flex items-center justify-between">
+                      <span className="uppercase tracking-[0.2em] text-slate-500">CVV</span>
+                      <span className="font-semibold text-white">{cardDetails.cvv}</span>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <p>Tap the card to show your full card, account, and routing details.</p>
+                <div className="rounded-3xl bg-white/5 p-6 text-slate-300">
+                  <p className="text-2xl tracking-[0.22em] font-semibold">•••• •••• •••• ••••</p>
+                  <p className="mt-3 text-sm text-slate-400">Tap to reveal your virtual debit card details.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300 transition-opacity duration-300">
+              {showCardDetails ? (
+                <p>Tap again to hide sensitive card details.</p>
+              ) : (
+                <p>Tap this card to show your full debit card information.</p>
               )}
             </div>
           </button>
