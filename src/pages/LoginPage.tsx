@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { parseResponse } from '../utils/helpers'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
@@ -51,10 +52,10 @@ export default function LoginPage() {
         })
       })
 
-      const data = await response.json()
+      const data = await parseResponse(response)
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed')
+        throw new Error(data.error || data.message || 'Login failed')
       }
 
       // Store auth data

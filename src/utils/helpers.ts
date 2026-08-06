@@ -148,3 +148,17 @@ export const setAuthToken = (token: string): void => {
 export const clearAuthToken = (): void => {
   localStorage.removeItem('auth_token')
 }
+
+/**
+ * Safely parse a fetch Response to JSON or plain text.
+ */
+export const parseResponse = async (response: Response): Promise<any> => {
+  const text = await response.text()
+  if (!text) return {}
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { message: text }
+  }
+}
