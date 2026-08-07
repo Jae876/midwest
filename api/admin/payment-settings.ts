@@ -36,7 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const authHeader = req.headers.authorization?.split(' ')[1]
+    const authHeaderRaw = typeof req.headers.authorization === 'string' ? req.headers.authorization : ''
+    const authHeader = authHeaderRaw.startsWith('Bearer ') ? authHeaderRaw.slice(7) : authHeaderRaw
     const connectionString = process.env.DATABASE_URL ||
       (process.env.PGHOST && `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE}?sslmode=require`)
 

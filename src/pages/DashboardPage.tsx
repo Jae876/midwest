@@ -9,6 +9,9 @@ import AlertsModal from '@components/modals/AlertsModal'
 
 function formatCardNumber(accountNumber = '') {
   const digits = accountNumber.replace(/\D/g, '')
+  if (!digits) {
+    return 'XXXX XXXX XXXX XXXX'
+  }
   const numberSource = digits.padEnd(12, '0')
   const full = `4532${numberSource}`.slice(0, 16)
   return full.replace(/(.{4})/g, '$1 ').trim()
@@ -16,7 +19,7 @@ function formatCardNumber(accountNumber = '') {
 
 function formatAccountNumber(accountNumber = '') {
   const digits = accountNumber.replace(/\D/g, '')
-  if (!digits) {
+  if (!digits || /^0+$/.test(digits)) {
     return 'Pending'
   }
   return digits.padStart(10, '0').replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')
@@ -24,7 +27,7 @@ function formatAccountNumber(accountNumber = '') {
 
 function formatRoutingNumber(routingNumber = '') {
   const digits = routingNumber.replace(/\D/g, '')
-  if (!digits) {
+  if (!digits || /^0+$/.test(digits)) {
     return 'Pending'
   }
   return digits.padStart(9, '0').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
@@ -201,7 +204,6 @@ export default function DashboardPage() {
         setPositions(positionsData)
 
         const accountNumberValue = userData.account.accountNumber || ''
-        const routingNumberValue = userData.account.routingNumber || ''
 
         const totalUnrealizedPL = positionsData.reduce((sum, pos) => sum + pos.unrealizedPL, 0)
         setAccountValue(userData.account.balance)

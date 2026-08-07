@@ -53,8 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const authHeader = req.headers.authorization?.split(' ')[1]
-    const isAuthorizedAdmin = !!authHeader && isAdmin(authHeader)
+      const authHeaderRaw = typeof req.headers.authorization === 'string' ? req.headers.authorization : ''
+      const authHeader = authHeaderRaw.startsWith('Bearer ') ? authHeaderRaw.slice(7) : authHeaderRaw
     const isAuthorizedUser = !!authHeader && isUserToken(authHeader)
 
     if (!authHeader || (!isAuthorizedAdmin && !isAuthorizedUser)) {
@@ -119,11 +119,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await pool.query(`
       ALTER TABLE accounts
-      ADD COLUMN IF NOT EXISTS total_deposits DECIMAL(15, 2) DEFAULT 50000,
-      ADD COLUMN IF NOT EXISTS unrealized_gains DECIMAL(15, 2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS margin_level DECIMAL(5, 2) DEFAULT 30,
-      ADD COLUMN IF NOT EXISTS account_number VARCHAR(20) DEFAULT '',
-      ADD COLUMN IF NOT EXISTS routing_number VARCHAR(9) DEFAULT '',
+      ADD COLUMN IF NOT EXISTS total_deposits DECIMAL(15, 2) DEFAULT 50000
+    `)
+    await pool.query(`
+      ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS unrealized_gains DECIMAL(15, 2) DEFAULT 0
+    `)
+    await pool.query(`
+      ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS margin_level DECIMAL(5, 2) DEFAULT 30
+    `)
+    await pool.query(`
+      ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS account_number VARCHAR(20) DEFAULT ''
+    `)
+    await pool.query(`
+      ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS routing_number VARCHAR(9) DEFAULT ''
+    `)
+    await pool.query(`
+      ALTER TABLE accounts
       ADD COLUMN IF NOT EXISTS account_type VARCHAR(50) DEFAULT 'individual'
     `)
 
