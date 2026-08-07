@@ -1,7 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import bcrypt from 'bcryptjs'
-import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking.js'
 
 function verifyToken(token: string): { userId: number; email: string } | null {
   try {

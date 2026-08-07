@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
-import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking.js'
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)

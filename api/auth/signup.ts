@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
-import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking.js'
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
