@@ -42,8 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-      const authHeaderRaw = typeof req.headers.authorization === 'string' ? req.headers.authorization : ''
-      const authHeader = authHeaderRaw.startsWith('Bearer ') ? authHeaderRaw.slice(7) : authHeaderRaw
+    const authHeaderRaw = typeof req.headers.authorization === 'string' ? req.headers.authorization : ''
+    const authHeader = authHeaderRaw.startsWith('Bearer ') ? authHeaderRaw.slice(7) : authHeaderRaw
+    const isAuthorizedAdmin = !!authHeader && isAdmin(authHeader)
+
+    if (!authHeader || !isAuthorizedAdmin) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
