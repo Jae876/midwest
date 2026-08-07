@@ -480,10 +480,45 @@ export default function AdminPage() {
 
       if (response.ok) {
         setDeleteConfirm(null)
-        loadUsers()
+        await loadUsers()
+        return
+      }
+
+      // If server delete failed or backend unavailable, remove local fallback user if present
+      const stored = localStorage.getItem('fallback_users')
+      if (stored) {
+        try {
+          const list = JSON.parse(stored)
+          // Look for matching id or email from current users list
+          const target = users.find((u) => u.id === userId) as any
+          const filtered = list.filter((u: any) => {
+            if (typeof u.id === 'number' && u.id === userId) return false
+            if (target && u.email === (target as any).email) return false
+            return true
+          })
+          localStorage.setItem('fallback_users', JSON.stringify(filtered))
+          setDeleteConfirm(null)
+          await loadUsers()
+          return
+        } catch {
+          // ignore parse errors
+        }
       }
     } catch (err) {
       console.error('Error deleting user:', err)
+      // Try to remove fallback user locally if network error
+      const stored = localStorage.getItem('fallback_users')
+      if (stored) {
+        try {
+          const list = JSON.parse(stored)
+          const filtered = list.filter((u: any) => u.id !== userId)
+          localStorage.setItem('fallback_users', JSON.stringify(filtered))
+          setDeleteConfirm(null)
+          await loadUsers()
+        } catch {
+          // ignore
+        }
+      }
     }
   }
 

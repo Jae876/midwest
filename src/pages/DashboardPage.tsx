@@ -112,7 +112,7 @@ export default function DashboardPage() {
   const [dayChangePercent, setDayChangePercent] = useState(0)
   const [totalDeposits, setTotalDeposits] = useState(0)
   const [unrealizedGains, setUnrealizedGains] = useState(0)
-  const [accountTarget, setAccountTarget] = useState(5000000)
+  const [accountTarget, setAccountTarget] = useState<number | null>(null)
   const [expandedCard, setExpandedCard] = useState<'accountValue' | 'netGains' | null>(null)
   const [showCardDetails, setShowCardDetails] = useState(false)
   const [isWithdrawalOpen, setIsWithdrawalOpen] = useState(false)
@@ -202,7 +202,7 @@ export default function DashboardPage() {
         setDayChangePercent((totalUnrealizedPL / Math.max(userData.account.balance, 1)) * 100)
         setTotalDeposits(userData.account.totalDeposits || 0)
         setUnrealizedGains(userData.account.unrealizedGains || 0)
-        setAccountTarget(userData.account.target || 5000000)
+        setAccountTarget(typeof (userData.account as any).target === 'number' ? (userData.account as any).target : null)
 
         setCardDetails({
           cardNumber: formatCardNumber(accountNumberValue),
@@ -344,11 +344,8 @@ export default function DashboardPage() {
 
       <div className="container-max py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <button
-            type="button"
-            onClick={() => setExpandedCard(expandedCard === 'accountValue' ? null : 'accountValue')}
-            aria-expanded={expandedCard === 'accountValue'}
-            className={`rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm transition-all duration-300 hover:shadow-lg ${expandedCard === 'accountValue' ? 'md:col-span-2 row-span-2' : ''}`}
+          <div
+            className={`rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm transition-all duration-300 ${expandedCard === 'accountValue' ? 'md:col-span-2 row-span-2' : ''}`}
           >
             <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Available Balance</p>
             <h3 className={`font-bold text-[var(--mh-primary)] mb-2 transition-all duration-300 ${expandedCard === 'accountValue' ? 'text-5xl' : 'text-2xl'}`}>
@@ -376,51 +373,39 @@ export default function DashboardPage() {
             )}
             {expandedCard === 'accountValue' && (
               <div className="mt-6 pt-6 border-t border-[var(--mh-primary)]/10 space-y-4">
-                <div>
-                  <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Target Savings</p>
-                  <p className="text-2xl font-bold text-[var(--mh-primary)]">
-                    ${accountTarget.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Amount to Target</p>
-                  <p className="text-lg font-semibold text-[var(--mh-primary)]">
-                    ${Math.max(0, accountTarget - accountValue).toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Progress</p>
-                  <div className="w-full bg-[var(--mh-accent-soft)] rounded-full h-2 mb-1">
-                    <div
-                      className="bg-[var(--mh-primary)] h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((accountValue / accountTarget) * 100, 100)}%` }}
-                    />
+                {accountTarget === null ? (
+                  <div className="w-full">
+                    <p className="text-sm text-[var(--mh-ink)]/70 mb-2">No savings target set.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => navigate('/profile')} className="flex-1 px-3 py-2 bg-[var(--mh-accent-soft)] text-[var(--mh-primary)] font-medium rounded-lg hover:opacity-90 transition text-sm">Set Target</button>
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-[var(--mh-primary)]">
-                    {Math.min((accountValue / accountTarget) * 100, 100).toFixed(1)}% of target
-                  </p>
-                </div>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigate('/profile')
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      navigate('/profile')
-                    }
-                  }}
-                  className="w-full mt-4 px-3 py-2 bg-[var(--mh-accent-soft)] text-[var(--mh-primary)] font-medium rounded-lg hover:opacity-90 transition text-sm cursor-pointer text-center"
-                >
-                  Edit Target
-                </div>
+                ) : (
+                  <div>
+                    <div>
+                      <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Target Savings</p>
+                      <p className="text-2xl font-bold text-[var(--mh-primary)]">${accountTarget.toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Amount to Target</p>
+                      <p className="text-lg font-semibold text-[var(--mh-primary)]">${Math.max(0, accountTarget - accountValue).toLocaleString('en-US', { minimumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Progress</p>
+                      <div className="w-full bg-[var(--mh-accent-soft)] rounded-full h-2 mb-1">
+                        <div className="bg-[var(--mh-primary)] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min((accountValue / Math.max(accountTarget, 1)) * 100, 100)}%` }} />
+                      </div>
+                      <p className="text-sm font-semibold text-[var(--mh-primary)]">{Math.min((accountValue / Math.max(accountTarget, 1)) * 100, 100).toFixed(1)}% of target</p>
+                    </div>
+                    <div className="mt-3">
+                      <button onClick={() => navigate('/profile')} className="px-3 py-2 bg-[var(--mh-accent-soft)] text-[var(--mh-primary)] font-medium rounded-lg hover:opacity-90 transition text-sm">Edit Target</button>
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-[var(--mh-ink)]/60 text-center">Click to collapse</p>
               </div>
             )}
-          </button>
+          </div>
 
           <div className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm">
             <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Total Deposits</p>
