@@ -30,14 +30,6 @@ function formatRoutingNumber(routingNumber = '') {
   return digits.padStart(9, '0').replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3')
 }
 
-function generateFallbackAccountNumber() {
-  return `${Math.floor(1000 + Math.random() * 9000)}${Math.floor(100000 + Math.random() * 900000)}`
-}
-
-function generateFallbackRoutingNumber() {
-  return `${Math.floor(100 + Math.random() * 900)}${Math.floor(100 + Math.random() * 900)}${Math.floor(100 + Math.random() * 900)}`
-}
-
 function generateCardExpiry(createdAt?: string) {
   const issued = new Date(createdAt || Date.now())
   if (Number.isNaN(issued.getTime())) {
@@ -176,25 +168,40 @@ export default function DashboardPage() {
     loadPaymentDetails()
   }, [navigate])
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     try {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) {
+      const token = localStorage.getItem('token') || ''
+      if (!token) {
         navigate('/login')
         return
       }
 
-      const userData: User = JSON.parse(userStr)
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/verify`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        navigate('/login')
+        return
+      }
+
+      const data = await response.json()
+      const userData: User = data.user
+      if (!userData) {
+        navigate('/login')
+        return
+      }
+
       setUser(userData)
 
       if (userData.account) {
         const positionsData = userData.account.positions || []
         setPositions(positionsData)
 
-        const accountNumberValue = userData.account.accountNumber || generateFallbackAccountNumber()
-        const routingNumberValue = userData.account.routingNumber || generateFallbackRoutingNumber()
-        userData.account.accountNumber = accountNumberValue
-        userData.account.routingNumber = routingNumberValue
+        const accountNumberValue = userData.account.accountNumber || ''
+        const routingNumberValue = userData.account.routingNumber || ''
 
         const totalUnrealizedPL = positionsData.reduce((sum, pos) => sum + pos.unrealizedPL, 0)
         setAccountValue(userData.account.balance)
@@ -210,8 +217,6 @@ export default function DashboardPage() {
           cvv: generateCardCVV(accountNumberValue),
           cardHolder: `${userData.firstName} ${userData.lastName}`
         })
-
-        localStorage.setItem('user', JSON.stringify(userData))
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
@@ -221,46 +226,24 @@ export default function DashboardPage() {
 
   const handleAddFunds = async (amount: number, paymentMethod: string, reference: string) => {
     try {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) return
+      if (!user?.account) return
 
-      const userData: User = JSON.parse(userStr)
-      if (!userData.account) return
+      const token = localStorage.getItem('token') || ''
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ operation: 'deposit', amount, paymentMethod, reference })
+      })
 
-      const newBalance = userData.account.balance + amount
-      const description = `Bank transfer deposit via ${paymentMethod} — ref ${reference}`
-
-      const newTransaction: Transaction = {
-        date: new Date().toISOString().split('T')[0],
-        type: 'deposit',
-        amount,
-        description,
-        balance: newBalance
+      if (!response.ok) {
+        console.error('Server deposit failed')
+        return
       }
 
-      userData.account.balance = newBalance
-      userData.account.totalDeposits = (userData.account.totalDeposits || 0) + amount
-
-      if (!userData.account.transactions) userData.account.transactions = []
-      userData.account.transactions.push(newTransaction)
-
-      // Persist to server-side DB
-      try {
-        const token = localStorage.getItem('token') || ''
-        await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ operation: 'deposit', amount, paymentMethod, reference })
-        })
-      } catch (err) {
-        console.warn('Server deposit failed, storing locally as fallback')
-      }
-
-      localStorage.setItem('user', JSON.stringify(userData))
-      loadUserData()
+      await loadUserData()
     } catch (err) {
       console.error('Error processing deposit:', err)
     }
@@ -268,11 +251,7 @@ export default function DashboardPage() {
 
   const handleWithdrawalConfirm = async (amount: number, bankName: string, accountNumber: string, routingNumber: string) => {
     try {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) return
-
-      const userData: User = JSON.parse(userStr)
-      if (!userData.account) return
+      if (!user?.account) return
 
       const token = localStorage.getItem('token') || ''
       const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
@@ -287,22 +266,8 @@ export default function DashboardPage() {
       const data = await resp.json().catch(() => ({}))
       if (!resp.ok) {
         console.warn('Server withdrawal failed:', data)
+        return
       }
-
-      const newBalance = userData.account.balance - amount
-      const newTransaction: Transaction = {
-        date: new Date().toISOString().split('T')[0],
-        type: 'withdrawal',
-        amount: -amount,
-        description: `Withdrawal to ${bankName} (••••${accountNumber.slice(-4)}) - routing ${routingNumber}`,
-        balance: newBalance
-      }
-
-      userData.account.balance = newBalance
-      if (!userData.account.transactions) userData.account.transactions = []
-      userData.account.transactions.push(newTransaction)
-      localStorage.setItem('user', JSON.stringify(userData))
-      loadUserData()
 
       setWithdrawalReceipt({
         amount,
@@ -311,6 +276,8 @@ export default function DashboardPage() {
         routingNumber,
         message: data.receipt?.reference || 'Withdrawal processed successfully.'
       })
+
+      await loadUserData()
     } catch (err) {
       console.error('Error processing withdrawal:', err)
     }

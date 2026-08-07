@@ -26,24 +26,40 @@ export default function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
 
   useEffect(() => {
-    try {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) {
+    const loadTransactions = async () => {
+      try {
+        const token = localStorage.getItem('token') || ''
+        if (!token) {
+          navigate('/login')
+          return
+        }
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/verify`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          navigate('/login')
+          return
+        }
+
+        const data = await response.json()
+        const userData: User = data.user
+
+        if (userData.account?.transactions) {
+          const txns = [...userData.account.transactions].reverse()
+          setTransactions(txns)
+          setFilteredTransactions(txns)
+        }
+      } catch (err) {
+        console.error('Error loading transactions:', err)
         navigate('/login')
-        return
       }
-
-      const userData: User = JSON.parse(userStr)
-
-      if (userData.account?.transactions) {
-        const txns = [...userData.account.transactions].reverse() // Show newest first
-        setTransactions(txns)
-        setFilteredTransactions(txns)
-      }
-    } catch (err) {
-      console.error('Error loading transactions:', err)
-      navigate('/login')
     }
+
+    loadTransactions()
   }, [navigate])
 
   const handleFilter = (type: string) => {

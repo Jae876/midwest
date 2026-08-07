@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node'
 import { Pool } from 'pg'
 import crypto from 'crypto'
+import { generateAccountNumber, generateRoutingNumber } from '../lib/banking'
 
 function verifyToken(token: string): { userId: number; email: string } | null {
   try {
@@ -52,7 +53,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const pool = new Pool({ connectionString, ssl: { rejectUnauthorized: false } })
 
-    // Get user data
     const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.userId])
     
     if (userResult.rows.length === 0) {
@@ -69,6 +69,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const account = accountResult.rows[0]
+    let accountNumber = account.account_number
+    let routingNumber = account.routing_number
+
+    if (!accountNumber || !routingNumber) {
+      accountNumber = accountNumber || generateAccountNumber()
+      routingNumber = routingNumber || generateRoutingNumber()
+      await pool.query(
+        'UPDATE accounts SET account_number = $1, routing_number = $2 WHERE id = $3',
+        [accountNumber, routingNumber, account.id]
+      )
+    }
 
     await pool.end()
 
@@ -85,6 +96,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           totalDeposits: parseFloat(account.total_deposits || 0),
           unrealizedGains: parseFloat(account.unrealized_gains || 0),
           createdAt: account.created_at,
+          accountNumber,
+          routingNumber,
           positions: [],
           transactions: []
         }

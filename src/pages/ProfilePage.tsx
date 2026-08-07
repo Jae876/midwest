@@ -27,18 +27,33 @@ export default function ProfilePage() {
     loadUserData()
   }, [navigate])
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     try {
-      const userStr = localStorage.getItem('user')
-      if (!userStr) {
+      const token = localStorage.getItem('token') || ''
+      if (!token) {
         navigate('/login')
         return
       }
 
-      const userData: User = JSON.parse(userStr)
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/verify`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        navigate('/login')
+        return
+      }
+
+      const data = await response.json()
+      const userData: User = data.user
+      if (!userData) {
+        navigate('/login')
+        return
+      }
+
       setUser(userData)
-      
-      // Load existing target or default to 5M
       if (userData.account?.target) {
         setTargetAmount(userData.account.target)
       }

@@ -1,6 +1,5 @@
 ﻿import { useState, useEffect, type FormEvent } from 'react'
 import { Lock, AlertCircle, Eye, EyeOff, Trash2, Edit2, X, Save, LogOut, UserPlus } from 'lucide-react'
-import { generateFallbackAccountNumber, generateFallbackRoutingNumber } from '../utils/helpers'
 
 interface User {
   id: number
@@ -46,8 +45,6 @@ export default function AdminPage() {
     balance: '50000'
   })
 
-  const ADMIN_PASSWORD = 'jaeseanjae'
-
   useEffect(() => {
     const token = localStorage.getItem('adminToken')
     const authTime = localStorage.getItem('adminAuthTime')
@@ -67,40 +64,27 @@ export default function AdminPage() {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      const response = await fetch(`${apiUrl}/auth/admin-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      })
 
-      try {
-        const response = await fetch(`${apiUrl}/auth/admin-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password })
-        })
+      const data = await response.json()
 
-        const data = await response.json()
-
-        if (response.ok && data.token) {
-          localStorage.setItem('adminToken', data.token)
-          localStorage.setItem('adminAuthTime', Date.now().toString())
-          localStorage.setItem('adminUser', JSON.stringify(data.admin))
-          setAuthenticated(true)
-          setPassword('')
-          return
-        }
-      } catch (err) {
-        console.log('Backend auth unavailable, using fallback')
-      }
-
-      if (password === ADMIN_PASSWORD) {
-        localStorage.setItem('adminToken', 'local_' + Date.now())
+      if (response.ok && data.token) {
+        localStorage.setItem('adminToken', data.token)
         localStorage.setItem('adminAuthTime', Date.now().toString())
-        localStorage.setItem('adminUser', JSON.stringify({ username: 'admin', role: 'admin' }))
+        localStorage.setItem('adminUser', JSON.stringify(data.admin))
         setAuthenticated(true)
         setPassword('')
       } else {
-        setError('Invalid password')
+        setError(data.error || data.message || 'Invalid admin credentials')
         setPassword('')
       }
     } catch (err) {
-      setError('Authentication failed')
+      console.error('Admin auth failed:', err)
+      setError('Unable to authenticate with admin service')
     } finally {
       setLoading(false)
     }
@@ -136,46 +120,12 @@ export default function AdminPage() {
 
       const data = await parseResponseData(response)
 
-      let backendUsers: any[] = []
       if (response.ok) {
-        backendUsers = data.users || []
+        setUsers(data.users || [])
       } else {
-        // don't throw here; allow fallback
-        backendUsers = []
-        setError(data.error || data.message || 'Unable to load users from server; using local fallback')
+        setUsers([])
+        setError(data.error || data.message || 'Unable to load users from server')
       }
-
-      // Merge with locally stored fallback users
-      const storedFallback = localStorage.getItem('fallback_users')
-      let fallbackUsers: any[] = []
-      if (storedFallback) {
-        try {
-          fallbackUsers = JSON.parse(storedFallback)
-        } catch {
-          fallbackUsers = []
-        }
-      }
-
-      // Map fallback users to same structure as backend (dedupe by email later)
-      const mappedFallback = fallbackUsers.map((u) => ({
-        id: u.id,
-        email: u.email,
-        firstName: u.firstName || '',
-        lastName: u.lastName || '',
-        accountType: 'individual',
-        balance: u.balance || 50000,
-        buyingPower: u.balance || 50000,
-        transactionCount: u.transactions ? u.transactions.length : 0,
-        createdAt: u.createdAt || new Date().toISOString(),
-        accountNumber: u.accountNumber || '',
-        routingNumber: u.routingNumber || ''
-      }))
-
-      // Deduplicate: prefer backend record when emails match
-      const backendEmails = new Set(backendUsers.map((b) => b.email))
-      const filteredFallback = mappedFallback.filter((f) => !backendEmails.has(f.email))
-
-      setUsers([...backendUsers, ...filteredFallback])
     } catch (err) {
       console.error('Error loading users:', err)
       setUsers([])
@@ -264,55 +214,8 @@ export default function AdminPage() {
 
       if (!response.ok) {
         const serverData = await parseResponseData(response)
-        // Fallback: store user locally so admin can continue
-        const stored = localStorage.getItem('fallback_users')
-        let list: any[] = []
-        if (stored) {
-          try { list = JSON.parse(stored) } catch { list = [] }
-        }
-        const initialBalance = Number(createForm.balance || 50000)
-        const fallbackAccountNumber = (createForm as any).accountNumber || generateFallbackAccountNumber()
-        const fallbackRoutingNumber = (createForm as any).routingNumber || generateFallbackRoutingNumber()
-
-        const fallbackUser = {
-          id: -(Date.now()),
-          email: createForm.email,
-          firstName: createForm.firstName,
-          lastName: createForm.lastName,
-          password: createForm.password,
-          balance: initialBalance,
-          createdAt: new Date().toISOString(),
-          accountNumber: fallbackAccountNumber,
-          routingNumber: fallbackRoutingNumber,
-          transactions: [
-            {
-              date: new Date().toISOString().split('T')[0],
-              type: 'deposit',
-              amount: initialBalance,
-              description: 'Initial account funding',
-              balance: initialBalance
-            }
-          ]
-        }
-        list.unshift(fallbackUser)
-        localStorage.setItem('fallback_users', JSON.stringify(list))
-
-        setShowCreateModal(false)
-        setCreateForm({ email: '', firstName: '', lastName: '', password: '', balance: '50000' })
-        setError(serverData?.error || serverData?.message || 'Server unavailable; user saved locally as fallback.')
-        await loadUsers()
+        setError(serverData?.error || serverData?.message || 'Unable to create user. Please check the database connection.')
         return
-      }
-
-      // Remove any fallback entry that matches this email
-      try {
-        const stored = localStorage.getItem('fallback_users')
-        if (stored) {
-          const list = JSON.parse(stored).filter((u: any) => u.email !== createForm.email)
-          localStorage.setItem('fallback_users', JSON.stringify(list))
-        }
-      } catch {
-        // ignore
       }
 
       setShowCreateModal(false)
@@ -484,41 +387,11 @@ export default function AdminPage() {
         return
       }
 
-      // If server delete failed or backend unavailable, remove local fallback user if present
-      const stored = localStorage.getItem('fallback_users')
-      if (stored) {
-        try {
-          const list = JSON.parse(stored)
-          // Look for matching id or email from current users list
-          const target = users.find((u) => u.id === userId) as any
-          const filtered = list.filter((u: any) => {
-            if (typeof u.id === 'number' && u.id === userId) return false
-            if (target && u.email === (target as any).email) return false
-            return true
-          })
-          localStorage.setItem('fallback_users', JSON.stringify(filtered))
-          setDeleteConfirm(null)
-          await loadUsers()
-          return
-        } catch {
-          // ignore parse errors
-        }
-      }
+      const data = await parseResponseData(response)
+      setError(data.error || data.message || 'Unable to delete user. Please try again.')
     } catch (err) {
       console.error('Error deleting user:', err)
-      // Try to remove fallback user locally if network error
-      const stored = localStorage.getItem('fallback_users')
-      if (stored) {
-        try {
-          const list = JSON.parse(stored)
-          const filtered = list.filter((u: any) => u.id !== userId)
-          localStorage.setItem('fallback_users', JSON.stringify(filtered))
-          setDeleteConfirm(null)
-          await loadUsers()
-        } catch {
-          // ignore
-        }
-      }
+      setError('Unable to delete user. Please ensure the database is reachable.')
     }
   }
 
