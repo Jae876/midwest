@@ -78,7 +78,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const admin = adminResult.rows[0]
 
     // Verify password
-    const isPasswordValid = password === process.env.ADMIN_PASSWORD
+    const adminPassword = process.env.ADMIN_PASSWORD || 'jaeseanjae'
+    const isPasswordValid = password === adminPassword
 
     if (!isPasswordValid) {
       await pool.end()

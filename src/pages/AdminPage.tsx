@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [createError, setCreateError] = useState('')
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
@@ -190,13 +191,21 @@ export default function AdminPage() {
   }, [authenticated])
 
   const handleCreateUser = async () => {
+    setCreateError('')
+    setError('')
+
     if (!createForm.email || !createForm.password) {
-      setError('Email and password are required')
+      setCreateError('Email and password are required')
       return
     }
 
     try {
       const token = localStorage.getItem('adminToken')
+      if (!token) {
+        setCreateError('Admin authentication is required to create users')
+        return
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/admin/users`, {
         method: 'POST',
         headers: {
@@ -212,9 +221,9 @@ export default function AdminPage() {
         })
       })
 
+      const serverData = await parseResponseData(response)
       if (!response.ok) {
-        const serverData = await parseResponseData(response)
-        setError(serverData?.error || serverData?.message || 'Unable to create user. Please check the database connection.')
+        setCreateError(serverData?.error || serverData?.message || 'Unable to create user. Please check the database connection.')
         return
       }
 
@@ -225,7 +234,7 @@ export default function AdminPage() {
       await loadUsers()
     } catch (err) {
       console.error('Error creating user:', err)
-      setError('Unable to create user')
+      setCreateError('Unable to create user: ' + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
@@ -436,6 +445,12 @@ export default function AdminPage() {
             </div>
           )}
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-900 font-semibold">
+              {error}
+            </div>
+          )}
+
           <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
             <h2 className="text-2xl font-bold text-ibkr-navy mb-6">User Management</h2>
 
@@ -586,6 +601,11 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {createError && (
+                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-900 text-sm">
+                  {createError}
+                </div>
+              )}
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={() => setShowCreateModal(false)}
