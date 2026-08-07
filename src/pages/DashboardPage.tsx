@@ -344,8 +344,11 @@ export default function DashboardPage() {
 
       <div className="container-max py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div
-            className={`rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm transition-all duration-300 ${expandedCard === 'accountValue' ? 'md:col-span-2 row-span-2' : ''}`}
+          <button
+            type="button"
+            onClick={() => setExpandedCard(expandedCard === 'accountValue' ? null : 'accountValue')}
+            aria-expanded={expandedCard === 'accountValue'}
+            className={`rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm transition-all duration-300 hover:shadow-lg ${expandedCard === 'accountValue' ? 'md:col-span-2 row-span-2' : ''}`}
           >
             <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Available Balance</p>
             <h3 className={`font-bold text-[var(--mh-primary)] mb-2 transition-all duration-300 ${expandedCard === 'accountValue' ? 'text-5xl' : 'text-2xl'}`}>
@@ -405,7 +408,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-[var(--mh-ink)]/60 text-center">Click to collapse</p>
               </div>
             )}
-          </div>
+          </button>
 
           <div className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm">
             <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Total Deposits</p>
