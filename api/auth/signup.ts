@@ -130,10 +130,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const accountRes = await pool.query(
       'INSERT INTO accounts (user_id, balance, buying_power, total_deposits, unrealized_gains, account_type, account_number, routing_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [user.id, 50000, 25000, 0, 0, 'individual', accountNumber, routingNumber]
+      [user.id, 50000, 25000, 50000, 0, 'individual', accountNumber, routingNumber]
     )
 
     const account = accountRes.rows[0]
+
+    await pool.query(
+      'INSERT INTO transactions (account_id, type, amount, description, balance) VALUES ($1, $2, $3, $4, $5)',
+      [account.id, 'deposit', 50000, 'Initial account funding', account.balance]
+    )
+
+    const transactions = [{
+      date: account.created_at instanceof Date ? account.created_at.toISOString() : account.created_at || '',
+      type: 'deposit',
+      amount: parseFloat(account.balance || 0),
+      description: 'Initial account funding',
+      balance: parseFloat(account.balance || 0)
+    }]
+
     const token = generateToken(user.id, user.email)
 
     await pool.end()
@@ -154,7 +168,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           routingNumber: account.routing_number,
           createdAt: account.created_at,
           positions: [],
-          transactions: []
+          transactions
         }
       }
     })

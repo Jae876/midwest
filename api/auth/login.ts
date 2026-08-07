@@ -91,6 +91,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       )
     }
 
+    const transactionsRes = await pool.query(
+      'SELECT date, type, amount, description, balance FROM transactions WHERE account_id = $1 ORDER BY date ASC',
+      [account.id]
+    )
+
+    const transactions = transactionsRes.rows.map((row: any) => ({
+      date: row.date instanceof Date ? row.date.toISOString() : row.date || '',
+      type: row.type,
+      amount: parseFloat(row.amount) || 0,
+      description: row.description || '',
+      balance: parseFloat(row.balance) || 0
+    }))
+
     const token = generateToken(user.id, user.email)
 
     await pool.end()
@@ -111,7 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           routingNumber: routingNumber || '',
           createdAt: account.created_at,
           positions: [],
-          transactions: []
+          transactions
         }
       }
     })
