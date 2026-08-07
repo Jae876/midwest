@@ -87,7 +87,7 @@ export default function LoginPage() {
                 accountNumber: match.accountNumber || generateFallbackAccountNumber(),
                 routingNumber: match.routingNumber || generateFallbackRoutingNumber(),
                 positions: [],
-                transactions: []
+                transactions: match.transactions || []
               }
             }
 

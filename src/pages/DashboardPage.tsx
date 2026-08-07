@@ -344,9 +344,11 @@ export default function DashboardPage() {
 
       <div className="container-max py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <div
+          <button
+            type="button"
             onClick={() => setExpandedCard(expandedCard === 'accountValue' ? null : 'accountValue')}
-            className={`rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 cursor-pointer shadow-sm transition-all duration-300 hover:shadow-lg ${expandedCard === 'accountValue' ? 'md:col-span-2 row-span-2' : ''}`}
+            aria-expanded={expandedCard === 'accountValue'}
+            className={`rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm transition-all duration-300 hover:shadow-lg ${expandedCard === 'accountValue' ? 'md:col-span-2 row-span-2' : ''}`}
           >
             <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Available Balance</p>
             <h3 className={`font-bold text-[var(--mh-primary)] mb-2 transition-all duration-300 ${expandedCard === 'accountValue' ? 'text-5xl' : 'text-2xl'}`}>
@@ -398,19 +400,27 @@ export default function DashboardPage() {
                     {Math.min((accountValue / accountTarget) * 100, 100).toFixed(1)}% of target
                   </p>
                 </div>
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={(e) => {
                     e.stopPropagation()
                     navigate('/profile')
                   }}
-                  className="w-full mt-4 px-3 py-2 bg-[var(--mh-accent-soft)] text-[var(--mh-primary)] font-medium rounded-lg hover:opacity-90 transition text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      navigate('/profile')
+                    }
+                  }}
+                  className="w-full mt-4 px-3 py-2 bg-[var(--mh-accent-soft)] text-[var(--mh-primary)] font-medium rounded-lg hover:opacity-90 transition text-sm cursor-pointer text-center"
                 >
                   Edit Target
-                </button>
+                </div>
                 <p className="text-xs text-[var(--mh-ink)]/60 text-center">Click to collapse</p>
               </div>
             )}
-          </div>
+          </button>
 
           <div className="rounded-2xl bg-white border border-[var(--mh-primary)]/10 p-6 shadow-sm">
             <p className="text-[var(--mh-ink)]/70 text-sm font-medium mb-2">Total Deposits</p>
@@ -456,7 +466,12 @@ export default function DashboardPage() {
             </button>
 
             {showCardDetails && (
-              <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5 text-left">
+              <button
+                type="button"
+                onClick={() => setShowCardDetails((prev) => !prev)}
+                aria-expanded={showCardDetails}
+                className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-8 shadow-2xl border border-white/5 text-left w-full text-left"
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Digital Visa Debit</p>
@@ -488,7 +503,7 @@ export default function DashboardPage() {
                 <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
                   <p>Tap the card button again to collapse the view.</p>
                 </div>
-              </div>
+              </button>
             )}
           </div>
 
